@@ -12,11 +12,15 @@ from scapy.arch.windows import get_windows_if_list
 
 class StreamCaptureGUI:
     VERSION = "1.0.0"  # 添加版本号
+    GITHUB_URL = "https://github.com/heplex/douyin-rtmp.git"
     
     def __init__(self, root):
         self.root = root
         self.root.title(f"抖音直播推流地址获取工具 v{self.VERSION}")
         self.root.geometry("800x600")
+        
+        # 显示免责声明
+        self.show_disclaimer()
         
         # 创建主框架
         self.main_frame = ttk.Frame(self.root, padding="10")
@@ -56,14 +60,17 @@ class StreamCaptureGUI:
         # 工具菜单
         tools_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="工具", menu=tools_menu)
-        tools_menu.add_command(label="卸载Npcap", command=self.uninstall_npcap)
+        tools_menu.add_command(label="安装 Npcap", command=self.install_npcap)
+        tools_menu.add_command(label="卸载 Npcap", command=self.uninstall_npcap)
+        
         
         # 帮助菜单
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
+        help_menu.add_command(label="GitHub 仓库", command=lambda: webbrowser.open(self.GITHUB_URL))
+        help_menu.add_separator()
         help_menu.add_command(label=f"关于 (v{self.VERSION})", 
-                            command=lambda: messagebox.showinfo("关于", 
-                            f"抖音直播推流地址获取工具\n版本：{self.VERSION}\n作者：kumquat"))
+                            command=self.show_about)
         
         # 主布局使用网格
         self.main_frame.columnconfigure(1, weight=1)
@@ -195,6 +202,8 @@ class StreamCaptureGUI:
 4. 点击"开始捕获"按钮
 5. 在抖音直播伴侣中点击"开始直播"
 6. 等待推流地址自动获取
+7. 如果不能正常获取，可以点击工具，尝试重新安装Npcap
+8. 在工具也可以卸载Npcap
         """
         ttk.Label(help_frame, text=help_text, justify=tk.LEFT).grid(row=0, column=0, sticky=tk.W)
 
@@ -286,8 +295,8 @@ class StreamCaptureGUI:
                             if code_match:
                                 # 获取匹配的字符串
                                 code = code_match.group(0)
-                                # 只保留合法字符：小写字母、数字、连字符、问号、等号、&符号和大写S
-                                code = re.sub(r'[^a-z0-9S\-?=&]', '', code)
+                                # 只保留合法字符：小写字母、数字、连字符、问号、等号、&符号和大写S/T
+                                code = re.sub(r'[^a-z0-9ST\-?=&]', '', code)
                                 self.stream_code.set(code)
                                 self.log_to_console(f"找到推流码: {code}")
                     
@@ -403,16 +412,29 @@ class StreamCaptureGUI:
         
         if response == 'yes':
             try:
-                npcap_installer = os.path.join(os.path.dirname(__file__), "resources", "npcap-1.80.exe")
+                # 修改这部分代码来处理打包后的资源路径
+                if getattr(sys, 'frozen', False):
+                    # 如果是打包后的程序
+                    application_path = sys._MEIPASS
+                else:
+                    # 如果是开发环境
+                    application_path = os.path.dirname(__file__)
+                
+                npcap_installer = os.path.join(application_path, "resources", "npcap-1.80.exe")
+                
                 if os.path.exists(npcap_installer):
+                    self.log_to_console(f"正在启动Npcap安装程序: {npcap_installer}")
                     os.startfile(npcap_installer)
                     messagebox.showinfo("提示", "请完成Npcap安装后重启程序")
                 else:
+                    self.log_to_console(f"未找到Npcap安装程序: {npcap_installer}")
                     # 如果本地没有安装包，跳转到下载页面
                     webbrowser.open('https://npcap.com/#download')
                 sys.exit(0)
             except Exception as e:
-                messagebox.showerror("错误", f"安装Npcap失败: {str(e)}")
+                error_msg = f"安装Npcap失败: {str(e)}"
+                self.log_to_console(error_msg)
+                messagebox.showerror("错误", error_msg)
                 sys.exit(1)
         return False
 
@@ -559,6 +581,55 @@ class StreamCaptureGUI:
         if ">>> 发现" in message:
             self.log_notebook.select(1)  # 切换到控制台输出标签
 
+    def install_npcap(self):
+        """手动安装 Npcap"""
+        try:
+            if getattr(sys, 'frozen', False):
+                application_path = sys._MEIPASS
+            else:
+                application_path = os.path.dirname(__file__)
+            
+            npcap_installer = os.path.join(application_path, "resources", "npcap-1.80.exe")
+            
+            if os.path.exists(npcap_installer):
+                self.log_to_console("正在启动 Npcap 安装程序...")
+                os.startfile(npcap_installer)
+                messagebox.showinfo("提示", "请按照向导完成 Npcap 安装")
+            else:
+                self.log_to_console("未找到本地 Npcap 安装程序，正在跳转到下载页面...")
+                webbrowser.open('https://npcap.com/#download')
+                messagebox.showinfo("提示", "请从官网下载并安装 Npcap")
+        except Exception as e:
+            error_msg = f"启动 Npcap 安装程序失败: {str(e)}"
+            self.log_to_console(error_msg)
+            messagebox.showerror("错误", error_msg)
+
+    def show_about(self):
+        """显示关于对话框"""
+        about_text = (
+            f"抖音直播推流地址获取工具\n"
+            f"版本：{self.VERSION}\n"
+            f"作者：kumquat\n\n"
+            f"GitHub：{self.GITHUB_URL}\n\n"
+            f"本工具仅供学习交流使用"
+        )
+        messagebox.showinfo("关于", about_text)
+
+    def show_disclaimer(self):
+        """显示免责声明"""
+        disclaimer_text = (
+            "免责声明\n\n"
+            "1. 本工具仅供学习和研究使用，完全免费\n"
+            "2. 请勿用于任何商业用途\n"
+            "3. 使用本工具产生的一切后果由使用者自行承担\n"
+            "4. 本工具使用了网络抓包技术，可能会被杀毒软件误报\n"
+            "   这是因为抓包功能与某些恶意软件行为类似\n"
+            "   本工具完全开源，源代码可在 GitHub 查看，请放心使用\n"
+            "5. 继续使用则表示您同意以上条款"
+        )
+        response = messagebox.askokcancel("免责声明", disclaimer_text)
+        if not response:
+            self.root.quit()
 
 def main():
     # 检查是否以管理员权限运行
