@@ -6,7 +6,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -37,10 +36,9 @@ ENV/
 .settings/
 
 # 打包文件
-*.spec
 output/
 build/
-dist/
+*.spec
 
 # 系统文件
 .DS_Store
