@@ -1,3 +1,2 @@
 pyinstaller
 scapy
-tkinter 

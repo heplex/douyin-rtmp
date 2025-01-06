@@ -1,3 +1,0 @@
--r base.txt
-# Windows特定依赖
-pywin32>=305 

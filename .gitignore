@@ -51,6 +51,3 @@ logs/
 # 本地配置文件
 config.local.ini
 settings.local.py
-
-# 资源文件（如果不想包含安装程序）
-# resources/*.exe 

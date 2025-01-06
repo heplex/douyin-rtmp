@@ -1,3 +1,0 @@
--r base.txt
-# Linux特定依赖
-python-libpcap>=0.3.0 
