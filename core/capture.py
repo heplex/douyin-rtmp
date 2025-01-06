@@ -17,14 +17,20 @@ class PacketCapture:
         if self.is_capturing:
             return
             
+        # 清空之前捕获的地址
+        self.server_address = None
+        self.stream_code = None
+        
         self.is_capturing = True
-        self.capture_thread = threading.Thread(
-            target=self._capture_packets,
-            args=(interface,),
-            daemon=True
-        )
-        self.capture_thread.start()
-        self.logger.info(f"开始在接口 {interface} 上捕获数据包")
+        try:
+            # 创建新的捕获线程
+            self.capture_thread = threading.Thread(target=self._start_capture, args=(interface,))
+            self.capture_thread.daemon = True
+            self.capture_thread.start()
+            self.logger.info(f"开始在接口 {interface} 上捕获数据包")
+        except Exception as e:
+            self.logger.error(f"启动捕获时发生错误: {str(e)}")
+            self.is_capturing = False
         
     def stop(self):
         """停止捕获数据包"""
@@ -32,28 +38,27 @@ class PacketCapture:
             return
             
         self.is_capturing = False
-        if self.capture_thread:
-            self.capture_thread.join(timeout=1.0)
+        if self.capture_thread and self.capture_thread.is_alive():
+            # 不要尝试join当前线程
+            if threading.current_thread() != self.capture_thread:
+                self.capture_thread.join(timeout=1.0)
+        self.capture_thread = None
         self.logger.info("停止捕获数据包")
         
     def add_callback(self, callback):
         """添加回调函数"""
         self.callbacks.append(callback)
         
-    def _capture_packets(self, interface):
-        """捕获数据包的主函数"""
+    def _start_capture(self, interface):
+        """实际的捕获过程"""
         try:
-            sniff(
-                iface=interface,
-                filter="tcp",
-                prn=self._packet_callback,
-                store=0,
-                stop_filter=lambda p: not self.is_capturing
-            )
+            sniff(iface=interface, 
+                  prn=self._packet_callback, 
+                  stop_filter=lambda x: not self.is_capturing)
         except Exception as e:
-            self.logger.error(f"捕获数据包时发生错误: {str(e)}")
+            self.logger.error(f"捕获过程中发生错误: {str(e)}")
             self.is_capturing = False
-            
+        
     def _packet_callback(self, packet):
         """处理捕获的数据包"""
         try:
@@ -91,7 +96,7 @@ class PacketCapture:
                             self.logger.packet(f"\n>>> 找到推流码 <<<")
                             self.logger.packet(f"推流码: {self.stream_code}")
                     
-                    # 当两个信息都获取到时，才触发回调
+                    # 当两个信息都获取到时，触发回调并停止捕获
                     if self.server_address and self.stream_code:
                         # 直接传递服务器地址和推流码两个参数
                         for callback in self.callbacks:
@@ -99,9 +104,7 @@ class PacketCapture:
                                 callback(self.server_address, self.stream_code)
                             except Exception as e:
                                 self.logger.error(f"执行回调函数时发生错误: {str(e)}")
-                        # 重置状态，准备下一次捕获
-                        self.server_address = None
-                        self.stream_code = None
+                        
                     
                 except UnicodeDecodeError:
                     pass  # 忽略无法解码的数据包

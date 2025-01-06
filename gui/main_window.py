@@ -62,7 +62,7 @@ class StreamCaptureGUI:
         self.capture = PacketCapture(self.logger)
         
         # 设置回调函数
-        self.capture.add_callback(self.update_stream_url)
+        self.capture.add_callback(self.on_capture_complete)
         
         # 创建界面组件
         self.create_widgets()
@@ -217,7 +217,8 @@ class StreamCaptureGUI:
         )
         response = messagebox.askokcancel("免责声明", disclaimer_text)
         if not response:
-            self.root.quit()
+            self.root.destroy()  # 使用 destroy() 而不是 quit()
+            sys.exit(0)  # 确保程序完全退出
         
     def show_about(self):
         """显示关于对话框"""
@@ -386,8 +387,9 @@ class StreamCaptureGUI:
         )
         response = messagebox.askokcancel("免责声明", disclaimer_text)
         if not response:
-            self.root.quit() 
-
+            self.root.destroy()  # 使用 destroy() 而不是 quit()
+            sys.exit(0)  # 确保程序完全退出
+        
     def toggle_capture(self):
         """切换捕获状态"""
         if not self.is_capturing:
@@ -399,6 +401,9 @@ class StreamCaptureGUI:
             self.capture_btn.configure(text="停止捕获")
             self.interface_combo.configure(state=tk.DISABLED)
             self.status_text.set("正在捕获")
+            
+            # 清空原有推流地址和推流码
+            self.update_stream_url('','')
             
             # 启动捕获线程
             self.capture.start(interface)
@@ -470,3 +475,39 @@ class StreamCaptureGUI:
         thread = threading.Thread(target=check_for_updates)
         thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
         thread.start() 
+
+    def on_capture_click(self):
+        """处理捕获按钮点击事件"""
+        if not self.is_capturing:
+            # 开始捕获
+            selected_interface = self.interface_combo.get()
+            if not selected_interface:
+                messagebox.showerror("错误", "请选择网络接口！")
+                return
+                
+            self.capture.start(selected_interface)
+            self.update_capture_status(True)
+        else:
+            # 停止捕获
+            self.capture.stop()
+            self.update_capture_status(False)
+
+    def update_capture_status(self, is_capturing):
+        """更新捕获状态和按钮显示"""
+        self.is_capturing = is_capturing
+        if is_capturing:
+            self.capture_btn.config(text="停止捕获")
+            self.status_text.set("状态：正在捕获...")
+            self.interface_combo.config(state="disabled")
+        else:
+            self.capture_btn.config(text="开始捕获")
+            self.status_text.set("状态：已停止")
+            self.interface_combo.config(state="readonly")
+
+    def on_capture_complete(self, server_address, stream_code):
+        """捕获完成的回调函数"""
+        # 更新界面显示
+        self.update_stream_url(server_address, stream_code)
+        # 停止捕获并更新状态
+        self.capture.stop()
+        self.update_capture_status(False) 
