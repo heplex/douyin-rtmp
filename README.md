@@ -5,6 +5,9 @@
 
 ## 使用说明
 
+### 视频教程
+https://www.bilibili.com/video/BV1XFrjYGEQ4
+
 ### 使用环境
 Windows 10 及以上版本，低版本Windows未进行验证过，也许可行？
 需关闭杀毒软件或加入白名单
