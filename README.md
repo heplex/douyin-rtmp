@@ -59,7 +59,7 @@ Windows 10 及以上版本，低版本Windows未进行验证过，也许可行�
 ## 开发指南
 
 ### 目录结构
-
+```
 project
 ├── main.py                # 主入口
 ├── resources
@@ -74,7 +74,7 @@ project
     ├── logger.py         # 日志管理
     ├── network.py        # 网络接口
     └── system.py         # 系统工具
-
+```
 
 ### 项目启动
 ```
