@@ -10,6 +10,9 @@ from core.npcap import NpcapManager
 from utils.logger import Logger
 from utils.network import NetworkInterface
 from gui.widgets import create_control_panel, create_log_panel, create_help_panel
+from utils.config import VERSION, GITHUB_CONFIG
+import threading
+from utils.version import check_for_updates
 
 def resource_path(relative_path):
     """获取资源的绝对路径"""
@@ -21,12 +24,9 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 class StreamCaptureGUI:
-    VERSION = "1.0.1"
-    GITHUB_URL = "https://github.com/heplex/douyin-rtmp.git"
-    
     def __init__(self, root):
         self.root = root
-        self.root.title(f"抖音直播推流地址获取工具 v{self.VERSION}")
+        self.root.title(f"抖音直播推流地址获取工具 {VERSION}")
         self.root.geometry("800x600")
         
         # 设置窗口图标
@@ -75,6 +75,9 @@ class StreamCaptureGUI:
             self.check_and_install_npcap()
             sys.exit(1)
             
+        # 在窗口加载完成后检查更新
+        self.root.after(1000, self.async_check_updates)
+        
     def create_widgets(self):
         # 创建菜单栏
         menubar = tk.Menu(self.root)
@@ -90,9 +93,9 @@ class StreamCaptureGUI:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
         help_menu.add_command(label="GitHub 仓库", 
-                            command=lambda: webbrowser.open(self.GITHUB_URL))
+                            command=lambda: webbrowser.open(GITHUB_CONFIG['RELEASE_URL']))
         help_menu.add_separator()
-        help_menu.add_command(label=f"关于 (v{self.VERSION})", 
+        help_menu.add_command(label=f"关于 (v{VERSION})", 
                             command=self.show_about)
         
         # 主布局使用网格
@@ -220,16 +223,16 @@ class StreamCaptureGUI:
         """显示关于对话框"""
         about_text = (
             f"抖音直播推流地址获取工具\n"
-            f"版本：{self.VERSION}\n"
+            f"版本：{VERSION}\n"
             f"作者：kumquat\n\n"
-            f"GitHub：{self.GITHUB_URL}\n\n"
+            f"GitHub：{GITHUB_CONFIG['RELEASE_URL']}\n\n"
             f"本工具仅供学习交流使用"
         )
         messagebox.showinfo("关于", about_text)
         
     def open_github(self):
         """打开GitHub页面"""
-        webbrowser.open(self.GITHUB_URL)
+        webbrowser.open(GITHUB_CONFIG['RELEASE_URL'])
         
     def clear_logs(self):
         """清除所有日志"""
@@ -362,9 +365,9 @@ class StreamCaptureGUI:
         """显示关于对话框"""
         about_text = (
             f"抖音直播推流地址获取工具\n"
-            f"版本：{self.VERSION}\n"
+            f"版本：{VERSION}\n"
             f"作者：kumquat\n\n"
-            f"GitHub：{self.GITHUB_URL}\n\n"
+            f"GitHub：{GITHUB_CONFIG['RELEASE_URL']}\n\n"
             f"本工具仅供学习交流使用"
         )
         messagebox.showinfo("关于", about_text)
@@ -461,3 +464,9 @@ class StreamCaptureGUI:
         """更新推流地址和推流码"""
         self.server_address.set(server_address)
         self.stream_code.set(stream_code) 
+
+    def async_check_updates(self):
+        """异步检查更新"""
+        thread = threading.Thread(target=check_for_updates)
+        thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
+        thread.start() 

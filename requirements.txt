@@ -1,2 +1,3 @@
 pyinstaller
 scapy
+requests>=2.31.0
