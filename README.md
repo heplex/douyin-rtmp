@@ -5,6 +5,9 @@
 
 ## 使用说明
 
+### 视频教程
+https://www.bilibili.com/video/BV1XFrjYGEQ4
+
 ### 使用环境
 Windows 10 及以上版本，低版本Windows未进行验证过，也许可行？
 需关闭杀毒软件或加入白名单
@@ -67,7 +70,7 @@ QQ群：870101332
 ## 开发指南
 
 ### 目录结构
-
+```
 project
 ├── main.py                # 主入口
 ├── resources
@@ -82,7 +85,7 @@ project
     ├── logger.py         # 日志管理
     ├── network.py        # 网络接口
     └── system.py         # 系统工具
-
+```
 
 ### 项目启动
 ```
