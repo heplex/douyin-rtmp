@@ -23,11 +23,15 @@ Windows 10 及以上版本，低版本Windows未进行验证过，也许可行�
 8. 打开直播伴侣进行开播，推流地址会自动获取，并显示在软件中；
 9.  如果推流地址获取失败，请检查网络接口是否选择正确，以及直播伴侣是否正常开播；
 10. 如果仍然失败，可以尝试在工具重新安装Npcap，并重新启动软件；
+11. 在OBS管理面板中配置好相关参数后，自动同步推流地址至OBS,一键开播！
 
 ### 卸载
 
 1. 在工具选项下，点击卸载Npcap，卸载完成后，删除本软件即可；
 
+### 交流群
+
+QQ群：870101332
 
 
 ## 免责说明
@@ -54,6 +58,10 @@ Windows 10 及以上版本，低版本Windows未进行验证过，也许可行�
    3. 优化抓包匹配正则
    4. 增加更新检测
    5. 优化Npcap安装
+3. 2025.01.07 v1.0.2
+   1. 增加OBS自动更新配置
+   2. 去掉免责弹窗，增加用户体验
+   3. 优化界面布局 
 
 
 ## 开发指南
@@ -85,6 +93,12 @@ pip install -r requirements.txt && python main.py
 ```
 pyinstaller --onefile --uac-admin --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --noconsole main.py
 ```
+
+## 请作者喝杯咖啡？
+
+多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！
+
+![请作者喝杯咖啡](./assets/donate.png)
 
 
 

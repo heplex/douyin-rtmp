@@ -13,6 +13,7 @@ from gui.widgets import create_control_panel, create_log_panel, create_help_pane
 from utils.config import VERSION, GITHUB_CONFIG
 import threading
 from utils.version import check_for_updates
+from utils.content_config import ADVERTISEMENT_TEXT, HELP_TEXT, OBS_HELP_TEXT  # 更新导入语句
 
 def resource_path(relative_path):
     """获取资源的绝对路径"""
@@ -248,7 +249,7 @@ class StreamCaptureGUI:
         
         ttk.Button(
             obs_btn_frame2,
-            text="拉起OBS",
+            text="启动OBS",
             command=self.launch_obs,
             width=12
         ).pack(side=tk.LEFT, padx=5)
@@ -260,10 +261,69 @@ class StreamCaptureGUI:
             width=12
         ).pack(side=tk.LEFT, padx=5)
         
+        # 添加广告位面板
+        ad_frame = ttk.LabelFrame(self.main_frame, text="联系我", padding="5")
+        ad_frame.grid(row=1, column=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
+        ad_frame.columnconfigure(0, weight=1)
+        
+        # 创建Logo按钮
+        try:
+            github_icon = tk.PhotoImage(file=resource_path("assets/github.png"))
+            # 创建一个无边框的Label来显示图标
+            logo_label = ttk.Label(
+                ad_frame,
+                image=github_icon,
+                cursor="hand2"
+            )
+            logo_label.image = github_icon
+            logo_label.grid(row=0, column=0, pady=(5,2), padx=5)
+            logo_label.bind("<Button-1>", lambda e: self.open_github())
+            
+            # 调整图片大小为原来的1/4
+            github_icon = github_icon.subsample(4, 4)
+            logo_label.configure(image=github_icon)
+            logo_label.image = github_icon
+            
+            # 添加仓库地址链接
+            repo_label = ttk.Label(
+                ad_frame,
+                text=GITHUB_CONFIG['REPO_URL'],
+                cursor="hand2",
+                foreground="blue",
+                font=("", 9, "underline")
+            )
+            repo_label.grid(row=1, column=0, pady=(0,5), padx=5)
+            repo_label.bind("<Button-1>", lambda e: self.open_github())
+            
+            # 添加广告文本
+            ad_text = scrolledtext.ScrolledText(
+                ad_frame,
+                wrap=tk.WORD,
+                width=20,
+                height=10
+            )
+            ad_text.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
+            ad_text.insert(tk.END, ADVERTISEMENT_TEXT)
+            ad_text.configure(state='disabled')  # 设置为只读
+            
+            
+            
+        except Exception as e:
+            self.logger.error(f"加载GitHub图标失败: {str(e)}")
+            # 如果图标加载失败，使用文本链接样式的Label
+            link_label = ttk.Label(
+                ad_frame,
+                text=GITHUB_CONFIG['REPO_URL'],
+                cursor="hand2",
+                foreground="blue"
+            )
+            link_label.grid(row=0, column=0, pady=5, padx=5)
+            link_label.bind("<Button-1>", lambda e: self.open_github())
+        
     def create_status_bar(self):
         """创建底栏"""
         status_frame = ttk.Frame(self.main_frame)
-        status_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        status_frame.grid(row=2, column=0, columnspan=4, sticky=(tk.W, tk.E), pady=5)
         
         # 左侧版本信息
         ttk.Label(
@@ -274,6 +334,14 @@ class StreamCaptureGUI:
         # 右侧按钮组
         buttons_frame = ttk.Frame(status_frame)
         buttons_frame.pack(side=tk.RIGHT)
+        
+        # 打赏按钮
+        ttk.Button(
+            buttons_frame,
+            text="请作者喝杯咖啡",
+            command=self.show_donation,
+            width=14
+        ).pack(side=tk.LEFT, padx=5)
         
         # 免责声明按钮
         ttk.Button(
@@ -293,25 +361,6 @@ class StreamCaptureGUI:
         
     def show_help(self):
         """显示使用说明弹窗"""
-        help_text = (
-            "使用说明：\n\n"
-            "1. 确保已安装 Npcap（如未安装可点击【工具】菜单进行安装）\n"
-            "2. 选择正确的网络接口（通常是当前正在使用的网络连接）\n"
-            "3. 打开抖音直播伴侣\n"
-            "4. 点击【开始捕获】按钮\n"
-            "5. 在直播伴侣中进行开播操作\n"
-            "6. 等待程序自动获取推流地址\n"
-            "7. 获取到地址后会自动停止捕获\n"
-            "8. 点击地址框后的【复制】按钮即可复制地址\n\n"
-            "注意事项：\n"
-            "· 请确保选择正确的网络接口\n"
-            "· 如果长时间未获取到地址，可以尝试停止后重新开始捕获\n"
-            "· 如遇问题请查看控制台输出的错误信息\n"
-            "· 本工具使用了网络抓包技术，可能会被杀毒软件误报\n"
-            "  这是因为抓包功能与某些恶意软件行为类似\n"
-            "  本工具完全开源，源代码可在 GitHub 查看，请放心使用"
-        )
-        
         # 创建对话框
         dialog = tk.Toplevel(self.root)
         dialog.title("使用说明")
@@ -329,7 +378,7 @@ class StreamCaptureGUI:
             pady=10
         )
         text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
-        text_area.insert(tk.END, help_text)
+        text_area.insert(tk.END, HELP_TEXT)
         text_area.configure(state='disabled')  # 设置为只读
         
         # 添加确定按钮
@@ -401,14 +450,14 @@ class StreamCaptureGUI:
             f"抖音直播推流地址获取工具\n"
             f"版本：{VERSION}\n"
             f"作者：kumquat\n\n"
-            f"GitHub：{GITHUB_CONFIG['RELEASE_URL']}\n\n"
+            f"GitHub：{GITHUB_CONFIG['REPO_URL']}\n\n"
             f"本工具仅供学习交流使用"
         )
         messagebox.showinfo("关于", about_text)
         
     def open_github(self):
         """打开GitHub页面"""
-        webbrowser.open(GITHUB_CONFIG['RELEASE_URL'])
+        webbrowser.open(GITHUB_CONFIG['REPO_URL'])
         
     def clear_logs(self):
         """清除所有日志"""
@@ -845,28 +894,6 @@ class StreamCaptureGUI:
 
     def show_obs_help(self):
         """显示OBS管理面板使用说明"""
-        help_text = """OBS管理面板使用说明：
-
-1. OBS路径配置
-   - 点击后选择OBS安装目录下的obs64.exe文件
-   - 配置成功后状态会显示"已配置"
-
-2. 推流配置
-   - 点击后选择OBS配置文件夹中的service.json文件
-   - 文件位置：\n用户目录/AppData/Roaming/obs-studio/basic/profiles/
-   - 一般只有一个文件夹，多个的情况下请自行区分，点进去以后\n选择service.json文件
-   - 配置成功后状态会显示"已配置"
-
-3. 拉起OBS
-   - 需要先完成OBS路径配置
-   - 点击后会自动启动OBS程序
-   - 在已经捕获到推流地址后，会自动更新推流配置，无需手动配置
-
-4. 注意事项
-   - 首次使用请先配置OBS路径
-   - 确保OBS已正确安装并运行过
-   - 所有配置会自动保存，下次启动软件时自动加载"""
-        
         # 创建说明窗口
         help_window = tk.Toplevel()
         help_window.title("OBS管理使用说明")
@@ -883,7 +910,7 @@ class StreamCaptureGUI:
             pady=10
         )
         text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
-        text_area.insert(tk.END, help_text)
+        text_area.insert(tk.END, OBS_HELP_TEXT)
         text_area.configure(state='disabled')  # 设置为只读
         
         # 窗口居中
@@ -893,3 +920,24 @@ class StreamCaptureGUI:
         x = (help_window.winfo_screenwidth() // 2) - (width // 2)
         y = (help_window.winfo_screenheight() // 2) - (height // 2)
         help_window.geometry(f'+{x}+{y}') 
+
+    def show_donation(self):
+        """显示打赏对话框"""
+        donation_window = tk.Toplevel()
+        donation_window.title("感谢支持")
+        donation_window.geometry("500x400")
+        donation_window.resizable(False, False)
+        try:
+            # 使用 resource_path 加载图片
+            coffee_icon = tk.PhotoImage(file=resource_path("assets/donate.png"))
+            img_label = ttk.Label(donation_window, image=coffee_icon)
+            img_label.image = coffee_icon  # 保持引用防止被垃圾回收
+            img_label.pack(pady=10)
+        except Exception as e:
+            self.logger.error(f"加载打赏二维码失败: {str(e)}")
+            error_label = ttk.Label(donation_window, text="二维码加载失败")
+            error_label.pack(pady=10) 
+        
+        thank_text = "无论多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！"
+        text_label = ttk.Label(donation_window, text=thank_text, wraplength=450)
+        text_label.pack(pady=10)
