@@ -37,7 +37,7 @@ class StreamCaptureGUI:
             print("无法加载图标文件")
         
         # 显示免责声明
-        self.show_disclaimer()
+        # self.show_disclaimer()
         
         # 创建主框架
         self.main_frame = ttk.Frame(self.root, padding="10")
@@ -54,6 +54,14 @@ class StreamCaptureGUI:
         self.stream_code = tk.StringVar()
         self.status_text = tk.StringVar(value="待开始")
         self.selected_interface = tk.StringVar()
+        
+        # 添加OBS相关变量
+        self.obs_path = tk.StringVar()
+        self.obs_status = tk.StringVar(value="未配置")
+        self.stream_config_status = tk.StringVar(value="未配置")
+        
+        # 加载OBS配置
+        self.load_obs_config()
         
         # 初始化组件
         self.logger = Logger()
@@ -95,7 +103,7 @@ class StreamCaptureGUI:
         help_menu.add_command(label="GitHub 仓库", 
                             command=lambda: webbrowser.open(GITHUB_CONFIG['RELEASE_URL']))
         help_menu.add_separator()
-        help_menu.add_command(label=f"关于 (v{VERSION})", 
+        help_menu.add_command(label=f"关于 ({VERSION})", 
                             command=self.show_about)
         
         # 主布局使用网格
@@ -200,25 +208,192 @@ class StreamCaptureGUI:
         # 创建日志面板
         self.log_panel = create_log_panel(self)
         
-        # 创建使用说明面板
-        self.help_panel = create_help_panel(self)
+        # 添加底栏
+        self.create_status_bar()
+        
+        # 添加OBS管理面板
+        obs_frame = ttk.LabelFrame(self.main_frame, text="OBS管理", padding="5")
+        obs_frame.grid(row=0, column=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
+        obs_frame.columnconfigure(1, weight=1)
+        
+        # OBS状态显示
+        ttk.Label(obs_frame, text="OBS状态:").grid(row=0, column=0, sticky=tk.W, pady=5, padx=5)
+        ttk.Label(obs_frame, textvariable=self.obs_status).grid(row=0, column=1, sticky=tk.W, pady=5, padx=5)
+        
+        # 推流配置状态显示
+        ttk.Label(obs_frame, text="推流配置:").grid(row=1, column=0, sticky=tk.W, pady=5, padx=5)
+        ttk.Label(obs_frame, textvariable=self.stream_config_status).grid(row=1, column=1, sticky=tk.W, pady=5, padx=5)
+        
+        # OBS按钮组 - 第一行
+        obs_btn_frame1 = ttk.Frame(obs_frame)
+        obs_btn_frame1.grid(row=2, column=0, columnspan=2, pady=(5,2))
+        
+        ttk.Button(
+            obs_btn_frame1,
+            text="OBS路径配置",
+            command=self.configure_obs_path,
+            width=12
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            obs_btn_frame1,
+            text="推流配置",
+            command=self.configure_stream,
+            width=12
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # OBS按钮组 - 第二行
+        obs_btn_frame2 = ttk.Frame(obs_frame)
+        obs_btn_frame2.grid(row=3, column=0, columnspan=2, pady=(2,5))
+        
+        ttk.Button(
+            obs_btn_frame2,
+            text="拉起OBS",
+            command=self.launch_obs,
+            width=12
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            obs_btn_frame2,
+            text="使用说明",
+            command=self.show_obs_help,
+            width=12
+        ).pack(side=tk.LEFT, padx=5)
+        
+    def create_status_bar(self):
+        """创建底栏"""
+        status_frame = ttk.Frame(self.main_frame)
+        status_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        
+        # 左侧版本信息
+        ttk.Label(
+            status_frame,
+            text=f"版本: {VERSION}"
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # 右侧按钮组
+        buttons_frame = ttk.Frame(status_frame)
+        buttons_frame.pack(side=tk.RIGHT)
+        
+        # 免责声明按钮
+        ttk.Button(
+            buttons_frame,
+            text="免责声明",
+            command=self.show_disclaimer,
+            width=10
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # 使用说明按钮
+        ttk.Button(
+            buttons_frame,
+            text="使用说明",
+            command=self.show_help,
+            width=10
+        ).pack(side=tk.LEFT, padx=5)
+        
+    def show_help(self):
+        """显示使用说明弹窗"""
+        help_text = (
+            "使用说明：\n\n"
+            "1. 确保已安装 Npcap（如未安装可点击【工具】菜单进行安装）\n"
+            "2. 选择正确的网络接口（通常是当前正在使用的网络连接）\n"
+            "3. 打开抖音直播伴侣\n"
+            "4. 点击【开始捕获】按钮\n"
+            "5. 在直播伴侣中进行开播操作\n"
+            "6. 等待程序自动获取推流地址\n"
+            "7. 获取到地址后会自动停止捕获\n"
+            "8. 点击地址框后的【复制】按钮即可复制地址\n\n"
+            "注意事项：\n"
+            "· 请确保选择正确的网络接口\n"
+            "· 如果长时间未获取到地址，可以尝试停止后重新开始捕获\n"
+            "· 如遇问题请查看控制台输出的错误信息\n"
+            "· 本工具使用了网络抓包技术，可能会被杀毒软件误报\n"
+            "  这是因为抓包功能与某些恶意软件行为类似\n"
+            "  本工具完全开源，源代码可在 GitHub 查看，请放心使用"
+        )
+        
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("使用说明")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)  # 设置为主窗口的子窗口
+        dialog.grab_set()  # 模态对话框
+        
+        # 添加文本区域
+        text_area = scrolledtext.ScrolledText(
+            dialog,
+            wrap=tk.WORD,
+            width=50,
+            height=20,
+            padx=10,
+            pady=10
+        )
+        text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        text_area.insert(tk.END, help_text)
+        text_area.configure(state='disabled')  # 设置为只读
+        
+        # 添加确定按钮
+        ttk.Button(
+            dialog,
+            text="确定",
+            command=dialog.destroy,
+            width=10
+        ).pack(pady=10)
+        
+        # 居中显示
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f'{width}x{height}+{x}+{y}')
         
     def show_disclaimer(self):
-        """显示免责声明"""
+        """显示免责声明弹窗"""
         disclaimer_text = (
-            "免责声明\n\n"
-            "1. 本工具仅供学习和研究使用，完全免费\n"
-            "2. 请勿用于任何商业用途\n"
-            "3. 使用本工具产生的一切后果由使用者自行承担\n"
-            "4. 本工具使用了网络抓包技术，可能会被杀毒软件误报\n"
-            "   这是因为抓包功能与某些恶意软件行为类似\n"
-            "   本工具完全开源，源代码可在 GitHub 查看，请放心使用\n"
-            "5. 继续使用则表示您同意以上条款"
+            "免责声明：\n\n"
+            "1. 本软件仅供学习和研究使用，请勿用于任何商业用途。\n\n"
+            "2. 使用本软件时请遵守相关法律法规，不得用于任何违法用途。\n\n"
+            "3. 本软件开源免费，作者不对使用本软件造成的任何直接或间\n接损失负责。\n\n"
+            "4. 使用本软件即表示您同意本免责声明的所有条款。\n\n"
+            "5. 作者保留对本软件和免责声明的最终解释权。\n\n"
         )
-        response = messagebox.askokcancel("免责声明", disclaimer_text)
-        if not response:
-            self.root.destroy()  # 使用 destroy() 而不是 quit()
-            sys.exit(0)  # 确保程序完全退出
+        
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("免责声明")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)  # 设置为主窗口的子窗口
+        dialog.grab_set()  # 模态对话框
+        
+        # 添加文本区域
+        text_area = scrolledtext.ScrolledText(
+            dialog,
+            wrap=tk.WORD,
+            width=50,
+            height=20,
+            padx=10,
+            pady=10
+        )
+        text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        text_area.insert(tk.END, disclaimer_text)
+        text_area.configure(state='disabled')  # 设置为只读
+        
+        # 添加确定按钮
+        ttk.Button(
+            dialog,
+            text="确定",
+            command=dialog.destroy,
+            width=10
+        ).pack(pady=10)
+        
+        # 居中显示
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f'{width}x{height}+{x}+{y}')
         
     def show_about(self):
         """显示关于对话框"""
@@ -362,34 +537,6 @@ class StreamCaptureGUI:
             self.logger.error(error_msg)
             messagebox.showerror("错误", error_msg)
             
-    def show_about(self):
-        """显示关于对话框"""
-        about_text = (
-            f"抖音直播推流地址获取工具\n"
-            f"版本：{VERSION}\n"
-            f"作者：kumquat\n\n"
-            f"GitHub：{GITHUB_CONFIG['RELEASE_URL']}\n\n"
-            f"本工具仅供学习交流使用"
-        )
-        messagebox.showinfo("关于", about_text)
-        
-    def show_disclaimer(self):
-        """显示免责声明"""
-        disclaimer_text = (
-            "免责声明\n\n"
-            "1. 本工具仅供学习和研究使用，完全免费\n"
-            "2. 请勿用于任何商业用途\n"
-            "3. 使用本工具产生的一切后果由使用者自行承担\n"
-            "4. 本工具使用了网络抓包技术，可能会被杀毒软件误报\n"
-            "   这是因为抓包功能与某些恶意软件行为类似\n"
-            "   本工具完全开源，源代码可在 GitHub 查看，请放心使用\n"
-            "5. 继续使用则表示您同意以上条款"
-        )
-        response = messagebox.askokcancel("免责声明", disclaimer_text)
-        if not response:
-            self.root.destroy()  # 使用 destroy() 而不是 quit()
-            sys.exit(0)  # 确保程序完全退出
-        
     def toggle_capture(self):
         """切换捕获状态"""
         if not self.is_capturing:
@@ -511,3 +658,238 @@ class StreamCaptureGUI:
         # 停止捕获并更新状态
         self.capture.stop()
         self.update_capture_status(False) 
+
+    def configure_obs_path(self):
+        """配置OBS路径"""
+        from tkinter import filedialog
+        import json
+        import os
+        
+        file_path = filedialog.askopenfilename(
+            title="选择obs64.exe",
+            filetypes=[("EXE files", "*.exe")],
+            initialfile="obs64.exe"
+        )
+        
+        if file_path:
+            # 保存配置
+            config_dir = os.path.expanduser("~/.douyin-rtmp")
+            os.makedirs(config_dir, exist_ok=True)
+            config_file = os.path.join(config_dir, "config.json")
+            
+            config = {}
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            
+            config['obs_path'] = file_path
+            
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            
+            self.obs_path.set(file_path)
+            self.obs_status.set("已配置")
+            self.logger.info(f"OBS路径已配置: {file_path}")
+    
+    def load_obs_config(self):
+        """加载OBS配置"""
+        import json
+        import os
+        
+        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+        
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    obs_path = config.get('obs_path', '')
+                    if obs_path and os.path.exists(obs_path):
+                        self.obs_path.set(obs_path)
+                        self.obs_status.set("已配置")
+                    
+                    # 加载推流配置路径
+                    stream_config_path = config.get('stream_config_path', '')
+                    if stream_config_path and os.path.exists(stream_config_path):
+                        self.stream_config_status.set("已配置")
+                    return
+            except Exception as e:
+                self.logger.error(f"加载配置失败: {str(e)}")
+        
+        self.obs_status.set("未配置")
+        self.stream_config_status.set("未配置")
+    
+    def launch_obs(self):
+        """启动OBS"""
+        import os
+        import subprocess
+        import json
+        
+        obs_path = self.obs_path.get()
+        
+        if not obs_path:
+            messagebox.showwarning("警告", "请先配置OBS路径")
+            return
+            
+        if not os.path.exists(obs_path):
+            messagebox.showerror("错误", "配置的OBS路径不存在，请重新配置")
+            return
+
+        # 检查推流配置和捕获状态
+        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+        stream_config_path = None
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                stream_config_path = config.get('stream_config_path')
+
+        # 获取当前捕获的推流信息
+        server_url = self.server_address.get()
+        stream_key = self.stream_code.get()
+
+        if (not stream_config_path or not os.path.exists(stream_config_path) or 
+            not server_url or not stream_key):
+            self.log_to_console("\n准备启动OBS...")
+            self.log_to_console("检测到推流配置不完整，将使用原有配置启动")
+            result = messagebox.askokcancel(
+                "提示",
+                "如果没有配置捕获地址或未配置推流配置文件，将不会自动变更推流地址。\n是否继续启动OBS？"
+            )
+            if not result:
+                return
+        else:
+            try:
+                self.log_to_console("\n准备启动OBS...")
+                self.log_to_console("检测到推流配置完整，正在更新推流配置...")
+                
+                # 创建标准格式的配置
+                service_config = {
+                    "type": "rtmp_custom",
+                    "settings": {
+                        "server": server_url,
+                        "key": stream_key,
+                        "use_auth": False,
+                        "bwtest": False
+                    }
+                }
+                
+                # 保存更新后的配置
+                with open(stream_config_path, 'w', encoding='utf-8') as f:
+                    json.dump(service_config, f, indent=4)
+                
+                self.log_to_console("推流配置更新成功")
+            except Exception as e:
+                self.log_to_console(f"更新推流配置失败: {str(e)}")
+                messagebox.showwarning(
+                    "警告", 
+                    f"更新推流配置失败: {str(e)}\n将使用原有推流配置启动OBS"
+                )
+        
+        try:
+            # 获取OBS安装目录
+            obs_dir = os.path.dirname(obs_path)
+            # 在OBS目录下启动程序
+            subprocess.Popen([obs_path], cwd=obs_dir)
+            self.log_to_console("OBS启动成功")
+        except Exception as e:
+            self.log_to_console(f"启动OBS失败: {str(e)}")
+            messagebox.showerror("错误", f"启动OBS失败: {str(e)}")
+
+    def configure_stream(self):
+        """配置推流设置"""
+        import os
+        from tkinter import filedialog
+        
+        # 获取OBS配置文件夹路径
+        profiles_path = os.path.expanduser("~\\AppData\\Roaming\\obs-studio\\basic\\profiles")
+        
+        if not os.path.exists(profiles_path):
+            messagebox.showerror("错误", "未找到OBS配置文件夹，请确保已安装OBS并运行过")
+            return
+        
+        file_path = filedialog.askopenfilename(
+            title="选择service.json文件",
+            initialdir=profiles_path,
+            filetypes=[("JSON files", "service.json")],
+            initialfile="service.json"
+        )
+        
+        if file_path:
+            if os.path.basename(file_path) != "service.json":
+                messagebox.showerror("错误", "请选择service.json文件")
+                return
+                
+            # 更新状态
+            self.stream_config_status.set("已配置")
+            self.logger.info(f"推流配置已选择: {file_path}")
+            
+            # 可以在这里添加保存配置文件路径到config.json的逻辑
+            self.save_stream_config_path(file_path)
+    
+    def save_stream_config_path(self, file_path):
+        """保存推流配置路径到配置文件"""
+        import json
+        import os
+        
+        config_dir = os.path.expanduser("~/.douyin-rtmp")
+        config_file = os.path.join(config_dir, "config.json")
+        
+        config = {}
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        
+        config['stream_config_path'] = file_path
+        
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2) 
+
+    def show_obs_help(self):
+        """显示OBS管理面板使用说明"""
+        help_text = """OBS管理面板使用说明：
+
+1. OBS路径配置
+   - 点击后选择OBS安装目录下的obs64.exe文件
+   - 配置成功后状态会显示"已配置"
+
+2. 推流配置
+   - 点击后选择OBS配置文件夹中的service.json文件
+   - 文件位置：\n用户目录/AppData/Roaming/obs-studio/basic/profiles/
+   - 一般只有一个文件夹，多个的情况下请自行区分，点进去以后\n选择service.json文件
+   - 配置成功后状态会显示"已配置"
+
+3. 拉起OBS
+   - 需要先完成OBS路径配置
+   - 点击后会自动启动OBS程序
+   - 在已经捕获到推流地址后，会自动更新推流配置，无需手动配置
+
+4. 注意事项
+   - 首次使用请先配置OBS路径
+   - 确保OBS已正确安装并运行过
+   - 所有配置会自动保存，下次启动软件时自动加载"""
+        
+        # 创建说明窗口
+        help_window = tk.Toplevel()
+        help_window.title("OBS管理使用说明")
+        help_window.geometry("500x400")
+        help_window.resizable(False, False)
+        
+        # 添加文本区域
+        text_area = scrolledtext.ScrolledText(
+            help_window,
+            wrap=tk.WORD,
+            width=50,
+            height=20,
+            padx=10,
+            pady=10
+        )
+        text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        text_area.insert(tk.END, help_text)
+        text_area.configure(state='disabled')  # 设置为只读
+        
+        # 窗口居中
+        help_window.update_idletasks()
+        width = help_window.winfo_width()
+        height = help_window.winfo_height()
+        x = (help_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (help_window.winfo_screenheight() // 2) - (height // 2)
+        help_window.geometry(f'+{x}+{y}') 
