@@ -1,5 +1,5 @@
 # 版本信息
-VERSION = "v1.0.2"
+VERSION = "v1.0.3"
 
 # GitHub 相关配置
 GITHUB_CONFIG = {
@@ -7,5 +7,6 @@ GITHUB_CONFIG = {
     "REPO_NAME": "douyin-rtmp",
     "API_URL": "https://api.github.com/repos/heplex/douyin-rtmp/releases/latest",
     "RELEASE_URL": "https://github.com/heplex/douyin-rtmp/releases/latest",
+    "DOWNLOAD_URL": "https://gh-proxy.com/github.com/heplex/douyin-rtmp/raw/main/dist/main.exe",
     "REPO_URL": "https://github.com/heplex/douyin-rtmp"
 } 
