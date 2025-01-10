@@ -938,6 +938,6 @@ class StreamCaptureGUI:
             error_label = ttk.Label(donation_window, text="二维码加载失败")
             error_label.pack(pady=10) 
         
-        thank_text = "无论多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！"
+        thank_text = "无论多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！\n ps:直播有收入了随便来一点喜庆一下就好啦，学生党或者直播没收益就不用啦！当然，大佬请随意~ 预祝各位老师们大红大紫！"
         text_label = ttk.Label(donation_window, text=thank_text, wraplength=450)
         text_label.pack(pady=10)
