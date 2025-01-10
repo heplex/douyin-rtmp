@@ -78,7 +78,7 @@ class PacketCapture:
                 try:
                     payload = packet[Raw].load.decode('utf-8', errors='ignore')
                     # 查找推流服务器地址
-                    if 'connect' in payload and 'thirdgame' in payload:
+                    if 'connect' in payload:
                         # 方案1：修改正则表达式，排除特殊字符
                         server_match = re.search(r'(rtmp://[a-zA-Z0-9\-\.]+/[^/]+)', payload)
                         # 或者方案2：保持原有正则，但处理匹配结果
