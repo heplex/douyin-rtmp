@@ -80,14 +80,14 @@ class PacketCapture:
                     # 查找推流服务器地址
                     if 'connect' in payload and 'thirdgame' in payload:
                         # 方案1：修改正则表达式，排除特殊字符
-                        server_match = re.search(r'(rtmp://[a-zA-Z0-9\-\.]+/thirdgame)', payload)
+                        server_match = re.search(r'(rtmp://[a-zA-Z0-9\-\.]+/[^/]+)', payload)
                         # 或者方案2：保持原有正则，但处理匹配结果
                         if server_match:
                             self.server_address = server_match.group(1).split('\x00')[0]  # 移除null字节
                             self.logger.packet(f"\n>>> 找到推流服务器地址 <<<")
                             self.logger.packet(f"地址: {self.server_address}")
                     
-                    # 查找推流码
+                    # 查找推流码 
                     if 'FCPublish' in payload:
                         # 使用更灵活的正则表达式，volcSecret部分设为可选
                         code_match = re.search(r'(stream-\d+\?expire=\d+&sign=[a-f0-9]+(?:&volcSecret=[a-f0-9]+&volcTime=\d+)?)', payload)
