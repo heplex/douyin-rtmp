@@ -1,0 +1,57 @@
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  pyinstaller:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Time Zone
+        run: tzutil /s "China Standard Time"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Package
+        run: pyinstaller --onefile --uac-admin --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --noconsole main.py --distpath pyinstaller_out --name douyin-rtmp-pyinstaller
+      - name : Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: douyin-rtmp-pyinstaller
+          path: ${{ github.workspace }}/pyinstaller_out/douyin-rtmp-pyinstaller.exe
+
+  nuitka:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Time Zone
+        run: tzutil /s "China Standard Time"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          pip install ordered-set zstandard nuitka
+      - name: Package
+        run: nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-console-mode=disable --windows-uac-admin --lto=yes --enable-plugin=tk-inter --follow-import-to=core,gui,utils --include-data-dir=assets=assets --include-data-files=resources/npcap-1.80.exe=resources/npcap-1.80.exe --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe --windows-icon-from-ico=assets/logo.ico main.py
+      - name : Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: douyin-rtmp-nuitka
+          path: ${{ github.workspace }}/nuitka_out/douyin-rtmp-nuitka.exe
