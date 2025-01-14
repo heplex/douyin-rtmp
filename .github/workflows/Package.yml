@@ -23,9 +23,11 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       - name: Install requirements
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
       - name: Package
-        run: pyinstaller --onefile --uac-admin --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --noconsole main.py --distpath pyinstaller_out --name douyin-rtmp-pyinstaller
+        run: pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --distpath=pyinstaller_out --name=douyin-rtmp-pyinstaller main.py
       - name : Upload file
         uses: actions/upload-artifact@v4
         with:
@@ -49,7 +51,7 @@ jobs:
           pip install -r requirements.txt
           pip install ordered-set zstandard nuitka
       - name: Package
-        run: nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-console-mode=disable --windows-uac-admin --lto=yes --enable-plugin=tk-inter --follow-import-to=core,gui,utils --include-data-dir=assets=assets --include-data-files=resources/npcap-1.80.exe=resources/npcap-1.80.exe --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe --windows-icon-from-ico=assets/logo.ico main.py
+        run: nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-uac-admin --windows-console-mode=disable --windows-icon-from-ico=assets/logo.ico --lto=yes --enable-plugin=tk-inter --include-data-files=assets/=assets/=* --include-data-files=resources/=resources/=* --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe main.py
       - name : Upload file
         uses: actions/upload-artifact@v4
         with:
