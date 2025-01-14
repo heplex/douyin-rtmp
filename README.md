@@ -97,8 +97,19 @@ pip install -r requirements.txt && python main.py
 ```
 
 ### 打包命令
+
+**1.Pyinstaller**
+
 ```
-pyinstaller --onefile --uac-admin --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --noconsole main.py
+pip install pyinstaller
+pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --distpath=pyinstaller_out --name=douyin-rtmp-pyinstaller main.py
+```
+
+**2.Nuitka**
+
+```
+pip install ordered-set zstandard nuitka
+nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-uac-admin --windows-console-mode=disable --windows-icon-from-ico=assets/logo.ico --lto=yes --enable-plugin=tk-inter --follow-import-to=core,gui,utils --include-data-files=assets/=assets/=* --include-data-files=resources/=resources/=* --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe main.py
 ```
 
 ## 请作者喝杯咖啡？
