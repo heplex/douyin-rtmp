@@ -11,7 +11,7 @@ def check_for_updates():
             latest_version = latest_release['tag_name']
             # 获取更新说明
             release_notes = latest_release.get('body', '暂无更新说明')
-            
+
             if latest_version != VERSION:
                 if messagebox.askyesno(
                     "发现新版本",
@@ -24,4 +24,4 @@ def check_for_updates():
                     return True
     except Exception as e:
         print(f"检查更新失败: {str(e)}")
-    return False 
+    return False

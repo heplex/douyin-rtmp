@@ -9,4 +9,4 @@ GITHUB_CONFIG = {
     "RELEASE_URL": "https://github.com/heplex/douyin-rtmp/releases/latest",
     "DOWNLOAD_URL": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/main/dist/main.exe",
     "REPO_URL": "https://github.com/heplex/douyin-rtmp"
-} 
+}
