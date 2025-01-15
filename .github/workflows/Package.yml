@@ -22,7 +22,8 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       - name: Build with PyInstaller
-        run: build.bat -y
+        shell: cmd
+        run: .\build.bat -y
       - name: Upload file
         uses: actions/upload-artifact@v4
         with:
@@ -43,7 +44,8 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       - name: Build with Nuitka
-        run: build.bat -y nuitka
+        shell: cmd
+        run: .\build.bat -y nuitka
       - name: Upload file
         uses: actions/upload-artifact@v4
         with:
