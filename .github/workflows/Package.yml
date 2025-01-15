@@ -27,27 +27,25 @@ jobs:
       - name: Upload file
         uses: actions/upload-artifact@v4
         with:
-          name: douyin-rtmp-pyinstaller
+          name: douyin-rtmp
           path: ${{ github.workspace }}/dist/douyin-rtmp.exe
 
-  nuitka:
-    runs-on: windows-latest
-    if: github.event_name == 'workflow_dispatch'
+  release:
+    needs: [pyinstaller]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
     steps:
-      - name: Setup Time Zone
-        run: tzutil /s "China Standard Time"
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Download PyInstaller artifact
+        uses: actions/download-artifact@v4
         with:
-          python-version: '3.12'
-          cache: 'pip'
-      - name: Build with Nuitka
-        shell: cmd
-        run: .\build.bat -y nuitka
-      - name: Upload file
-        uses: actions/upload-artifact@v4
+          name: douyin-rtmp
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: douyin-rtmp-nuitka
-          path: ${{ github.workspace }}/nuitka_out/douyin-rtmp-nuitka.exe
+          files: |
+            douyin-rtmp.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
