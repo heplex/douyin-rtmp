@@ -3,6 +3,8 @@ name: Package
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'main'
     tags:
       - 'v*'
 
@@ -32,6 +34,8 @@ jobs:
     needs: [pyinstaller]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     
     steps:
       - name: Download PyInstaller artifact

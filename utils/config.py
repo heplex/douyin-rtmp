@@ -7,6 +7,6 @@ GITHUB_CONFIG = {
     "REPO_NAME": "douyin-rtmp",
     "API_URL": "https://gh-proxy.protoniot.com/api/repos/heplex/douyin-rtmp/releases/latest",
     "RELEASE_URL": "https://github.com/heplex/douyin-rtmp/releases/latest",
-    "DOWNLOAD_URL": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/main/dist/main.exe",
+    "DOWNLOAD_URL": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/main/dist/douyin-rtmp.exe",
     "REPO_URL": "https://github.com/heplex/douyin-rtmp"
 }
