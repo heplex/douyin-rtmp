@@ -109,7 +109,11 @@ sudo python main.py
 
 ### 打包命令
 
+可以自行选择使用Pyinstaller或Nuitka进行打包
+
 **1.Pyinstaller**
+
+打包时间短，运行效率比不上Nuitka，实现原理为将Python环境与项目整合打包，使其能够在没有部署Python环境的设备上运行
 
 ```
 pip install pyinstaller
@@ -117,6 +121,8 @@ pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data=
 ```
 
 **2.Nuitka**
+
+打包时间极长，运行效率高，实现原理为将Python代码转换为C代码并使用MinGW64进行编译、静态链接，使其能够真正脱离Python环境运行
 
 ```
 pip install ordered-set zstandard nuitka
