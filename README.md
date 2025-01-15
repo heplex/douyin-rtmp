@@ -109,12 +109,13 @@ sudo python main.py
 
 ### 打包命令
 
-可以自行选择使用Pyinstaller或Nuitka进行打包，为了不占用过多公共资源，Git Action中请以Pyinstaller进行打包
-ps:nuitka确实是有点慢，本地打都要很久，但以软件目前的功能来讲，并不建议采用nuitka进行打包，后续进行功能扩展后，需要持续性运行的情况下可以选择。
+发行版默认采用Pyinstaller进行打包
 
 **1.Pyinstaller**
 
-打包时间短，运行效率比不上Nuitka，实现原理为将Python环境与项目整合打包，使其能够在没有部署Python环境的设备上运行
+优势：打包时间短
+缺点：运行效率较低
+原理：将Python环境与项目整合打包，使其能够在没有部署Python环境的设备上运行
 
 ```
 build.bat -y
@@ -122,7 +123,9 @@ build.bat -y
 
 **2.Nuitka**
 
-打包时间极长，运行效率高，实现原理为将Python代码转换为C代码并使用MinGW64进行编译、静态链接，使其能够真正脱离Python环境运行
+优势：运行效率高，相当于原生C语言程序
+缺点：打包时间极长，可能存在环境问题导致打包失败
+原理：将Python代码转换为C代码并使用MinGW64进行编译、静态链接，使其能够真正脱离Python环境运行
 
 ```
 build.bat -y nuitka
