@@ -23,8 +23,9 @@ Windows 10 及以上版本，低版本Windows未进行验证过，也许可行�
 
 1. 本工具使用了网络抓包技术，可能会被杀毒软件误报，在下载时请关闭所有的杀毒软件或将本软件加入到白名单中，如360、腾讯管家、火绒、windows defender等;
 2.  下载方式
-    1.  在[Releases](https://github.com/heplex/douyin-rtmp/releases)页面下载最新版本的抖音直播推流地址获取工具；
-    2.  直接下载本仓库中的`dist/main.exe`，一般此处为最新版本；
+    1.  在[Releases](https://github.com/heplex/douyin-rtmp/releases)页面选择喜欢的版本，点击douyin-rtmp.exe进行下载；
+    2.  直接点击下载[douyin-rtmp.exe](https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe)
+    3.  国内用户代理下载地址[https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe](https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe)
 3. 下载完成后，使用管理员权限进行运行；
 4. 在弹出的免责声明对话框中，点击“确定”按钮，继续使用则表示您同意以上条款；
 5. 如果未检测到Npcap，会提示先安装Npcap，安装完成后，重新启动软件；
