@@ -92,8 +92,19 @@ project
 ```
 
 ### 项目启动
+
+**1.对于Windows11 24H2以下的系统，以管理员身份运行cmd并执行以下命令**
+
 ```
-pip install -r requirements.txt && python main.py
+pip install -r requirements.txt
+python main.py
+```
+
+**2.对于Windows11 24H2及以上的系统，以任意身份运行cmd并执行以下命令**
+
+```
+pip install -r requirements.txt
+sudo python main.py
 ```
 
 ### 打包命令
