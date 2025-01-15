@@ -5,9 +5,8 @@ on:
   push:
     branches:
       - 'main'
-  pull_request:
-    branches:
-      - 'main'
+    tags:
+      - 'v*'
 
 jobs:
   pyinstaller:
@@ -22,20 +21,17 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
-      - name: Install requirements
-        run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
-      - name: Package
-        run: pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --distpath=pyinstaller_out --name=douyin-rtmp-pyinstaller main.py
-      - name : Upload file
+      - name: Build with PyInstaller
+        run: build.bat -y
+      - name: Upload file
         uses: actions/upload-artifact@v4
         with:
           name: douyin-rtmp-pyinstaller
-          path: ${{ github.workspace }}/pyinstaller_out/douyin-rtmp-pyinstaller.exe
+          path: ${{ github.workspace }}/dist/douyin-rtmp.exe
 
   nuitka:
     runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Setup Time Zone
         run: tzutil /s "China Standard Time"
@@ -46,13 +42,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
-      - name: Install requirements
-        run: |
-          pip install -r requirements.txt
-          pip install ordered-set zstandard nuitka
-      - name: Package
-        run: nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-uac-admin --windows-console-mode=disable --windows-icon-from-ico=assets/logo.ico --lto=yes --enable-plugin=tk-inter --include-data-files=assets/=assets/=* --include-data-files=resources/=resources/=* --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe main.py
-      - name : Upload file
+      - name: Build with Nuitka
+        run: build.bat -y nuitka
+      - name: Upload file
         uses: actions/upload-artifact@v4
         with:
           name: douyin-rtmp-nuitka

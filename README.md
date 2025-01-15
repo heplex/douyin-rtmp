@@ -109,15 +109,15 @@ sudo python main.py
 
 ### 打包命令
 
-可以自行选择使用Pyinstaller或Nuitka进行打包
+可以自行选择使用Pyinstaller或Nuitka进行打包，为了不占用过多公共资源，Git Action中请以Pyinstaller进行打包
+ps:nuitka确实是有点慢，本地打都要很久，但以软件目前的功能来讲，并不建议采用nuitka进行打包，后续进行功能扩展后，需要持续性运行的情况下可以选择。
 
 **1.Pyinstaller**
 
 打包时间短，运行效率比不上Nuitka，实现原理为将Python环境与项目整合打包，使其能够在没有部署Python环境的设备上运行
 
 ```
-pip install pyinstaller
-pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data="resources;resources" --add-data="assets;assets" --distpath=pyinstaller_out --name=douyin-rtmp-pyinstaller main.py
+build.bat -y
 ```
 
 **2.Nuitka**
@@ -125,8 +125,7 @@ pyinstaller --onefile --uac-admin --noconsole --icon=assets/logo.ico --add-data=
 打包时间极长，运行效率高，实现原理为将Python代码转换为C代码并使用MinGW64进行编译、静态链接，使其能够真正脱离Python环境运行
 
 ```
-pip install ordered-set zstandard nuitka
-nuitka --mingw64 --standalone --onefile --follow-imports --show-memory --show-progress --assume-yes-for-downloads --windows-uac-admin --windows-console-mode=disable --windows-icon-from-ico=assets/logo.ico --lto=yes --enable-plugin=tk-inter --include-data-files=assets/=assets/=* --include-data-files=resources/=resources/=* --output-dir=nuitka_out --output-filename=douyin-rtmp-nuitka.exe main.py
+build.bat -y nuitka
 ```
 
 ## 请作者喝杯咖啡？
