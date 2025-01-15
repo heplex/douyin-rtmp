@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
 
+
 def create_control_panel(gui):
     """创建控制面板"""
     frame = ttk.LabelFrame(gui.main_frame, text="控制面板", padding="5")
@@ -9,37 +10,36 @@ def create_control_panel(gui):
     frame.columnconfigure(1, weight=1)
 
     # 网络接口选择（第一行）
-    ttk.Label(frame, text="网络接口:").grid(row=0, column=0, sticky=tk.W, pady=5, padx=5)
+    ttk.Label(frame, text="网络接口:").grid(
+        row=0, column=0, sticky=tk.W, pady=5, padx=5
+    )
     gui.interface_combo = ttk.Combobox(
-        frame,
-        textvariable=gui.selected_interface,
-        state="readonly",
-        width=50
+        frame, textvariable=gui.selected_interface, state="readonly", width=50
     )
     gui.interface_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
 
     # 刷新按钮
-    ttk.Button(
-        frame,
-        text="刷新",
-        command=gui.refresh_interfaces,
-        width=8
-    ).grid(row=0, column=2, padx=5)
+    ttk.Button(frame, text="刷新", command=gui.refresh_interfaces, width=8).grid(
+        row=0, column=2, padx=5
+    )
 
     # 状态和控制按钮（第二行）
     gui.capture_btn = ttk.Button(
-        frame,
-        text="开始捕获",
-        command=gui.toggle_capture,
-        width=10
+        frame, text="开始捕获", command=gui.toggle_capture, width=10
     )
     gui.capture_btn.grid(row=1, column=0, pady=5, padx=5)
     ttk.Label(frame, text="状态:").grid(row=1, column=1, sticky=tk.W, padx=5)
-    ttk.Label(frame, textvariable=gui.status_text).grid(row=1, column=1, sticky=tk.W, padx=60)
+    ttk.Label(frame, textvariable=gui.status_text).grid(
+        row=1, column=1, sticky=tk.W, padx=60
+    )
 
     # 服务器地址显示（第三行）
-    ttk.Label(frame, text="推流服务器:").grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
-    gui.server_entry = ttk.Entry(frame, textvariable=gui.server_address, state="readonly")
+    ttk.Label(frame, text="推流服务器:").grid(
+        row=2, column=0, sticky=tk.W, pady=5, padx=5
+    )
+    gui.server_entry = ttk.Entry(
+        frame, textvariable=gui.server_address, state="readonly"
+    )
     gui.server_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
 
     # 服务器地址操作按钮框
@@ -50,7 +50,7 @@ def create_control_panel(gui):
         server_btn_frame,
         text="复制",
         command=lambda: gui.copy_to_clipboard(gui.server_address.get()),
-        width=8
+        width=8,
     ).pack(side=tk.LEFT, padx=2)
 
     # 推流码显示（第四行）
@@ -66,16 +66,19 @@ def create_control_panel(gui):
         stream_btn_frame,
         text="复制",
         command=lambda: gui.copy_to_clipboard(gui.stream_code.get()),
-        width=8
+        width=8,
     ).pack(side=tk.LEFT, padx=2)
 
     return frame
+
 
 def create_log_panel(gui):
     """创建日志面板"""
     # 创建标签页控件
     notebook = ttk.Notebook(gui.main_frame)
-    notebook.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+    notebook.grid(
+        row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
+    )
     gui.main_frame.grid_rowconfigure(1, weight=1)
 
     # 创建系统日志标签页
@@ -87,10 +90,7 @@ def create_log_panel(gui):
 
     # 系统日志清除按钮
     ttk.Button(
-        console_frame,
-        text="清除控制台",
-        command=gui.clear_console,
-        width=12
+        console_frame, text="清除控制台", command=gui.clear_console, width=12
     ).grid(row=1, column=0, pady=5)
 
     # 创建数据包日志标签页
@@ -102,10 +102,7 @@ def create_log_panel(gui):
 
     # 数据包日志清除按钮
     ttk.Button(
-        packet_frame,
-        text="清除数据包日志",
-        command=gui.clear_packet_console,
-        width=15
+        packet_frame, text="清除数据包日志", command=gui.clear_packet_console, width=15
     ).grid(row=1, column=0, pady=5)
 
     # 添加标签页
@@ -119,8 +116,10 @@ def create_log_panel(gui):
     def create_context_menu(widget, is_packet=False):
         menu = tk.Menu(widget, tearoff=0)
         menu.add_command(label="复制", command=lambda: copy_text(widget))
-        menu.add_command(label="清除",
-                        command=gui.clear_packet_console if is_packet else gui.clear_console)
+        menu.add_command(
+            label="清除",
+            command=gui.clear_packet_console if is_packet else gui.clear_console,
+        )
         return menu
 
     def show_context_menu(event, menu):
@@ -143,6 +142,7 @@ def create_log_panel(gui):
     packet_console.bind("<Button-3>", lambda e: show_context_menu(e, packet_menu))
 
     return notebook
+
 
 def create_help_panel(gui):
     """创建使用说明面板"""

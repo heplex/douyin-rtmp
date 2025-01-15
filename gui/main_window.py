@@ -10,14 +10,20 @@ from core.npcap import NpcapManager
 from utils.logger import Logger
 from utils.network import NetworkInterface
 from gui.widgets import create_control_panel, create_log_panel, create_help_panel
-from utils.config import VERSION, GITHUB_CONFIG
+from utils.config import VERSION, GITHUB_CONFIG, load_obs_config
 import threading
 from utils.version import check_for_updates
-from utils.content_config import ADVERTISEMENT_TEXT, HELP_TEXT, OBS_HELP_TEXT  # 更新导入语句
+from utils.content_config import (
+    ADVERTISEMENT_TEXT,
+    HELP_TEXT,
+    OBS_HELP_TEXT,
+)  # 更新导入语句
+import psutil  # 需要添加此导入
+
 
 def resource_path(relative_path):
     """获取资源文件的绝对路径，兼容开发、Nuitka打包和PyInstaller打包后的环境"""
-    if hasattr(sys, '_MEIPASS'):
+    if hasattr(sys, "_MEIPASS"):
         # 在PyInstaller打包后的环境中
         base_path = sys._MEIPASS
     else:
@@ -25,6 +31,7 @@ def resource_path(relative_path):
         base_path = os.path.dirname(os.path.dirname(__file__))
 
     return os.path.join(base_path, relative_path)
+
 
 class StreamCaptureGUI:
     def __init__(self, root):
@@ -64,7 +71,10 @@ class StreamCaptureGUI:
         self.stream_config_status = tk.StringVar(value="未配置")
 
         # 加载OBS配置
-        self.load_obs_config()
+        obs_path, obs_configured, stream_configured = load_obs_config()
+        self.obs_path.set(obs_path)
+        self.obs_status.set("已配置" if obs_configured else "未配置")
+        self.stream_config_status.set("已配置" if stream_configured else "未配置")
 
         # 初始化组件
         self.logger = Logger()
@@ -103,23 +113,28 @@ class StreamCaptureGUI:
         # 帮助菜单
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
-        help_menu.add_command(label="GitHub 仓库",
-                            command=lambda: webbrowser.open(GITHUB_CONFIG['RELEASE_URL']))
+        help_menu.add_command(
+            label="GitHub 仓库",
+            command=lambda: webbrowser.open(GITHUB_CONFIG["RELEASE_URL"]),
+        )
         help_menu.add_separator()
-        help_menu.add_command(label=f"关于 ({VERSION})",
-                            command=self.show_about)
+        help_menu.add_command(label=f"关于 ({VERSION})", command=self.show_about)
 
         # 主布局使用网格
         self.main_frame.columnconfigure(1, weight=1)
 
         # 创建标签页控件
         self.log_notebook = ttk.Notebook(self.main_frame)
-        self.log_notebook.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.log_notebook.grid(
+            row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S)
+        )
         self.main_frame.grid_rowconfigure(1, weight=1)
 
         # 创建数据包日志标签页
         packet_frame = ttk.Frame(self.log_notebook, padding="5")
-        self.packet_console = scrolledtext.ScrolledText(packet_frame, wrap=tk.WORD, height=8)
+        self.packet_console = scrolledtext.ScrolledText(
+            packet_frame, wrap=tk.WORD, height=8
+        )
         self.packet_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         packet_frame.grid_columnconfigure(0, weight=1)
         packet_frame.grid_rowconfigure(0, weight=1)
@@ -129,7 +144,7 @@ class StreamCaptureGUI:
             packet_frame,
             text="清除数据包日志",
             command=self.clear_packet_console,
-            width=15
+            width=15,
         ).grid(row=1, column=0, pady=5)
 
         # 创建主控制台标签页
@@ -141,10 +156,7 @@ class StreamCaptureGUI:
 
         # 控制台清除按钮
         ttk.Button(
-            console_frame,
-            text="清除控制台",
-            command=self.clear_console,
-            width=12
+            console_frame, text="清除控制台", command=self.clear_console, width=12
         ).grid(row=1, column=0, pady=5)
 
         # 添加标签页
@@ -153,37 +165,39 @@ class StreamCaptureGUI:
 
         # 上半部分 - 控制面板
         control_frame = ttk.LabelFrame(self.main_frame, text="控制面板", padding="5")
-        control_frame.grid(row=0, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        control_frame.grid(
+            row=0, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
+        )
         control_frame.columnconfigure(1, weight=1)
 
         # 网络接口选择（第一行）
-        ttk.Label(control_frame, text="网络接口:").grid(row=0, column=0, sticky=tk.W, pady=5, padx=5)
+        ttk.Label(control_frame, text="网络接口:").grid(
+            row=0, column=0, sticky=tk.W, pady=5, padx=5
+        )
         self.interface_combo = ttk.Combobox(
-            control_frame,
-            textvariable=self.selected_interface,
-            state="readonly"
+            control_frame, textvariable=self.selected_interface, state="readonly"
         )
         self.interface_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
         ttk.Button(
-            control_frame,
-            text="刷新",
-            command=self.refresh_interfaces,
-            width=8
+            control_frame, text="刷新", command=self.refresh_interfaces, width=8
         ).grid(row=0, column=2, padx=5)
 
         # 状态和控制按钮（第二行）
         self.capture_btn = ttk.Button(
-            control_frame,
-            text="开始捕获",
-            command=self.toggle_capture,
-            width=10
+            control_frame, text="开始捕获", command=self.toggle_capture, width=10
         )
         self.capture_btn.grid(row=1, column=0, pady=5, padx=5)
-        ttk.Label(control_frame, text="状态:").grid(row=1, column=1, sticky=tk.W, padx=5)
-        ttk.Label(control_frame, textvariable=self.status_text).grid(row=1, column=1, sticky=tk.W, padx=60)
+        ttk.Label(control_frame, text="状态:").grid(
+            row=1, column=1, sticky=tk.W, padx=5
+        )
+        ttk.Label(control_frame, textvariable=self.status_text).grid(
+            row=1, column=1, sticky=tk.W, padx=60
+        )
 
         # 服务器地址显示
-        ttk.Label(control_frame, text="推流服务器:").grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
+        ttk.Label(control_frame, text="推流服务器:").grid(
+            row=2, column=0, sticky=tk.W, pady=5, padx=5
+        )
         self.server_entry = ttk.Entry(control_frame, textvariable=self.server_address)
         self.server_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
 
@@ -195,14 +209,7 @@ class StreamCaptureGUI:
             server_btn_frame,
             text="复制",
             command=lambda: self.copy_to_clipboard(self.server_address.get()),
-            width=8
-        ).pack(side=tk.LEFT, padx=2)
-
-        ttk.Button(
-            server_btn_frame,
-            text="清除",
-            command=lambda: self.server_address.set(""),
-            width=8
+            width=8,
         ).pack(side=tk.LEFT, padx=2)
 
         # 创建控制面板
@@ -219,48 +226,62 @@ class StreamCaptureGUI:
         obs_frame.grid(row=0, column=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
         obs_frame.columnconfigure(1, weight=1)
 
-        # OBS状态显示
-        ttk.Label(obs_frame, text="OBS状态:").grid(row=0, column=0, sticky=tk.W, pady=5, padx=5)
-        ttk.Label(obs_frame, textvariable=self.obs_status).grid(row=0, column=1, sticky=tk.W, pady=5, padx=5)
+        # 状态显示框架
+        status_frame = ttk.Frame(obs_frame)
+        status_frame.grid(row=0, column=0, columnspan=2, pady=5)
 
-        # 推流配置状态显示
-        ttk.Label(obs_frame, text="推流配置:").grid(row=1, column=0, sticky=tk.W, pady=5, padx=5)
-        ttk.Label(obs_frame, textvariable=self.stream_config_status).grid(row=1, column=1, sticky=tk.W, pady=5, padx=5)
+        ttk.Label(status_frame, text="OBS状态:", width=8).pack(side=tk.LEFT, padx=2)
 
-        # OBS按钮组 - 第一行
+        ttk.Label(status_frame, textvariable=self.obs_status, width=6).pack(
+            side=tk.LEFT, padx=1
+        )
+
+        ttk.Label(status_frame, text="推流配置:", width=8).pack(side=tk.LEFT, padx=2)
+
+        ttk.Label(status_frame, textvariable=self.stream_config_status, width=6).pack(
+            side=tk.LEFT, padx=1
+        )
+
+        # OBS按钮组
         obs_btn_frame1 = ttk.Frame(obs_frame)
-        obs_btn_frame1.grid(row=2, column=0, columnspan=2, pady=(5,2))
+        obs_btn_frame1.grid(row=1, column=0, columnspan=2, pady=(5, 2))
 
         ttk.Button(
             obs_btn_frame1,
             text="OBS路径配置",
             command=self.configure_obs_path,
-            width=12
+            width=12,
         ).pack(side=tk.LEFT, padx=5)
 
         ttk.Button(
-            obs_btn_frame1,
-            text="推流配置",
-            command=self.configure_stream,
-            width=12
+            obs_btn_frame1, text="推流配置", command=self.configure_stream, width=12
         ).pack(side=tk.LEFT, padx=5)
 
-        # OBS按钮组 - 第二行
+        # OBS按钮组
         obs_btn_frame2 = ttk.Frame(obs_frame)
-        obs_btn_frame2.grid(row=3, column=0, columnspan=2, pady=(2,5))
+        obs_btn_frame2.grid(row=2, column=0, columnspan=2, pady=(5, 2))
 
         ttk.Button(
             obs_btn_frame2,
-            text="启动OBS",
-            command=self.launch_obs,
-            width=12
+            text="同步推流码",
+            command=self.sync_stream_config,
+            width=12,
         ).pack(side=tk.LEFT, padx=5)
 
         ttk.Button(
-            obs_btn_frame2,
-            text="使用说明",
-            command=self.show_obs_help,
-            width=12
+            obs_btn_frame2, text="启动OBS", command=self.launch_obs, width=12
+        ).pack(side=tk.LEFT, padx=5)
+
+        # OBS按钮组
+        obs_btn_frame3 = ttk.Frame(obs_frame)
+        obs_btn_frame3.grid(row=3, column=0, columnspan=2, pady=(5, 2))
+
+        ttk.Button(
+            obs_btn_frame3, text="插件管理", command=self.open_plugin_manager, width=12
+        ).pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(
+            obs_btn_frame3, text="使用说明", command=self.show_obs_help, width=12
         ).pack(side=tk.LEFT, padx=5)
 
         # 添加广告位面板
@@ -272,13 +293,9 @@ class StreamCaptureGUI:
         try:
             github_icon = tk.PhotoImage(file=resource_path("assets/github.png"))
             # 创建一个无边框的Label来显示图标
-            logo_label = ttk.Label(
-                ad_frame,
-                image=github_icon,
-                cursor="hand2"
-            )
+            logo_label = ttk.Label(ad_frame, image=github_icon, cursor="hand2")
             logo_label.image = github_icon
-            logo_label.grid(row=0, column=0, pady=(5,2), padx=5)
+            logo_label.grid(row=0, column=0, pady=(5, 2), padx=5)
             logo_label.bind("<Button-1>", lambda e: self.open_github())
 
             # 调整图片大小为原来的1/4
@@ -289,35 +306,32 @@ class StreamCaptureGUI:
             # 添加仓库地址链接
             repo_label = ttk.Label(
                 ad_frame,
-                text=GITHUB_CONFIG['REPO_URL'],
+                text=GITHUB_CONFIG["REPO_URL"],
                 cursor="hand2",
                 foreground="blue",
-                font=("", 9, "underline")
+                font=("", 9, "underline"),
             )
-            repo_label.grid(row=1, column=0, pady=(0,5), padx=5)
+            repo_label.grid(row=1, column=0, pady=(0, 5), padx=5)
             repo_label.bind("<Button-1>", lambda e: self.open_github())
 
             # 添加广告文本
             ad_text = scrolledtext.ScrolledText(
-                ad_frame,
-                wrap=tk.WORD,
-                width=20,
-                height=10
+                ad_frame, wrap=tk.WORD, width=20, height=10
             )
-            ad_text.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
+            ad_text.grid(
+                row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5
+            )
             ad_text.insert(tk.END, ADVERTISEMENT_TEXT)
-            ad_text.configure(state='disabled')  # 设置为只读
-
-
+            ad_text.configure(state="disabled")  # 设置为只读
 
         except Exception as e:
             self.logger.error(f"加载GitHub图标失败: {str(e)}")
             # 如果图标加载失败，使用文本链接样式的Label
             link_label = ttk.Label(
                 ad_frame,
-                text=GITHUB_CONFIG['REPO_URL'],
+                text=GITHUB_CONFIG["REPO_URL"],
                 cursor="hand2",
-                foreground="blue"
+                foreground="blue",
             )
             link_label.grid(row=0, column=0, pady=5, padx=5)
             link_label.bind("<Button-1>", lambda e: self.open_github())
@@ -328,10 +342,7 @@ class StreamCaptureGUI:
         status_frame.grid(row=2, column=0, columnspan=4, sticky=(tk.W, tk.E), pady=5)
 
         # 左侧版本信息
-        ttk.Label(
-            status_frame,
-            text=f"版本: {VERSION}"
-        ).pack(side=tk.LEFT, padx=5)
+        ttk.Label(status_frame, text=f"版本: {VERSION}").pack(side=tk.LEFT, padx=5)
 
         # 右侧按钮组
         buttons_frame = ttk.Frame(status_frame)
@@ -339,26 +350,17 @@ class StreamCaptureGUI:
 
         # 打赏按钮
         ttk.Button(
-            buttons_frame,
-            text="请作者喝杯咖啡",
-            command=self.show_donation,
-            width=14
+            buttons_frame, text="请作者喝杯咖啡", command=self.show_donation, width=14
         ).pack(side=tk.LEFT, padx=5)
 
         # 免责声明按钮
         ttk.Button(
-            buttons_frame,
-            text="免责声明",
-            command=self.show_disclaimer,
-            width=10
+            buttons_frame, text="免责声明", command=self.show_disclaimer, width=10
         ).pack(side=tk.LEFT, padx=5)
 
         # 使用说明按钮
         ttk.Button(
-            buttons_frame,
-            text="使用说明",
-            command=self.show_help,
-            width=10
+            buttons_frame, text="使用说明", command=self.show_help, width=10
         ).pack(side=tk.LEFT, padx=5)
 
     def show_help(self):
@@ -372,24 +374,14 @@ class StreamCaptureGUI:
 
         # 添加文本区域
         text_area = scrolledtext.ScrolledText(
-            dialog,
-            wrap=tk.WORD,
-            width=50,
-            height=20,
-            padx=10,
-            pady=10
+            dialog, wrap=tk.WORD, width=50, height=20, padx=10, pady=10
         )
         text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
         text_area.insert(tk.END, HELP_TEXT)
-        text_area.configure(state='disabled')  # 设置为只读
+        text_area.configure(state="disabled")  # 设置为只读
 
         # 添加确定按钮
-        ttk.Button(
-            dialog,
-            text="确定",
-            command=dialog.destroy,
-            width=10
-        ).pack(pady=10)
+        ttk.Button(dialog, text="确定", command=dialog.destroy, width=10).pack(pady=10)
 
         # 居中显示
         dialog.update_idletasks()
@@ -397,7 +389,7 @@ class StreamCaptureGUI:
         height = dialog.winfo_height()
         x = (dialog.winfo_screenwidth() // 2) - (width // 2)
         y = (dialog.winfo_screenheight() // 2) - (height // 2)
-        dialog.geometry(f'{width}x{height}+{x}+{y}')
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_disclaimer(self):
         """显示免责声明弹窗"""
@@ -419,24 +411,14 @@ class StreamCaptureGUI:
 
         # 添加文本区域
         text_area = scrolledtext.ScrolledText(
-            dialog,
-            wrap=tk.WORD,
-            width=50,
-            height=20,
-            padx=10,
-            pady=10
+            dialog, wrap=tk.WORD, width=50, height=20, padx=10, pady=10
         )
         text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
         text_area.insert(tk.END, disclaimer_text)
-        text_area.configure(state='disabled')  # 设置为只读
+        text_area.configure(state="disabled")  # 设置为只读
 
         # 添加确定按钮
-        ttk.Button(
-            dialog,
-            text="确定",
-            command=dialog.destroy,
-            width=10
-        ).pack(pady=10)
+        ttk.Button(dialog, text="确定", command=dialog.destroy, width=10).pack(pady=10)
 
         # 居中显示
         dialog.update_idletasks()
@@ -444,7 +426,7 @@ class StreamCaptureGUI:
         height = dialog.winfo_height()
         x = (dialog.winfo_screenwidth() // 2) - (width // 2)
         y = (dialog.winfo_screenheight() // 2) - (height // 2)
-        dialog.geometry(f'{width}x{height}+{x}+{y}')
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_about(self):
         """显示关于对话框"""
@@ -459,7 +441,7 @@ class StreamCaptureGUI:
 
     def open_github(self):
         """打开GitHub页面"""
-        webbrowser.open(GITHUB_CONFIG['REPO_URL'])
+        webbrowser.open(GITHUB_CONFIG["REPO_URL"])
 
     def clear_logs(self):
         """清除所有日志"""
@@ -476,9 +458,8 @@ class StreamCaptureGUI:
             if self.interfaces:
                 # 获取接口状态
                 netsh_output = subprocess.check_output(
-                    "netsh interface show interface",
-                    shell=True
-                ).decode('gbk', errors='ignore')
+                    "netsh interface show interface", shell=True
+                ).decode("gbk", errors="ignore")
 
                 active_interfaces = []
                 inactive_interfaces = []
@@ -486,18 +467,18 @@ class StreamCaptureGUI:
 
                 # 解析 netsh 输出获取接口状态
                 interface_status = {}
-                for line in netsh_output.split('\n')[3:]:
+                for line in netsh_output.split("\n")[3:]:
                     if line.strip():
                         parts = line.strip().split()
                         if len(parts) >= 4:
                             status = parts[0]
-                            name = ' '.join(parts[3:])
+                            name = " ".join(parts[3:])
                             interface_status[name] = status == "已启用"
 
                 for iface in self.interfaces:
-                    name = iface['name']
-                    desc = iface['description']
-                    ip_addresses = iface.get('ips', [])
+                    name = iface["name"]
+                    desc = iface["description"]
+                    ip_addresses = iface.get("ips", [])
 
                     # 从 netsh 结果获取状态
                     is_active = interface_status.get(name, False)
@@ -524,10 +505,12 @@ class StreamCaptureGUI:
                     )
 
                 # 合并列表，活动接口在前
-                interface_list = [x[0] for x in active_interfaces] + [x[0] for x in inactive_interfaces]
+                interface_list = [x[0] for x in active_interfaces] + [
+                    x[0] for x in inactive_interfaces
+                ]
 
                 # 更新下拉列表
-                self.interface_combo['values'] = interface_list
+                self.interface_combo["values"] = interface_list
 
                 # 设置默认选择
                 if default_interface:
@@ -552,6 +535,7 @@ class StreamCaptureGUI:
         except Exception as e:
             self.log_to_console(f"加载网络接口失败: {str(e)}")
             import traceback
+
             self.log_to_console(traceback.format_exc())
 
     def refresh_interfaces(self):
@@ -592,7 +576,9 @@ class StreamCaptureGUI:
         """切换捕获状态"""
         if not self.is_capturing:
             # 获取选中的接口名称
-            interface = self.selected_interface.get().split(" - ")[0].split("]")[1].strip()
+            interface = (
+                self.selected_interface.get().split(" - ")[0].split("]")[1].strip()
+            )
 
             # 开始捕获
             self.is_capturing = True
@@ -601,7 +587,7 @@ class StreamCaptureGUI:
             self.status_text.set("正在捕获")
 
             # 清空原有推流地址和推流码
-            self.update_stream_url('','')
+            self.update_stream_url("", "")
 
             # 启动捕获线程
             self.capture.start(interface)
@@ -719,7 +705,7 @@ class StreamCaptureGUI:
         file_path = filedialog.askopenfilename(
             title="选择obs64.exe",
             filetypes=[("EXE files", "*.exe")],
-            initialfile="obs64.exe"
+            initialfile="obs64.exe",
         )
 
         if file_path:
@@ -730,50 +716,22 @@ class StreamCaptureGUI:
 
             config = {}
             if os.path.exists(config_file):
-                with open(config_file, 'r', encoding='utf-8') as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     config = json.load(f)
 
-            config['obs_path'] = file_path
+            config["obs_path"] = file_path
 
-            with open(config_file, 'w', encoding='utf-8') as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
 
             self.obs_path.set(file_path)
             self.obs_status.set("已配置")
             self.logger.info(f"OBS路径已配置: {file_path}")
 
-    def load_obs_config(self):
-        """加载OBS配置"""
-        import json
-        import os
-
-        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
-
-        if os.path.exists(config_file):
-            try:
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    obs_path = config.get('obs_path', '')
-                    if obs_path and os.path.exists(obs_path):
-                        self.obs_path.set(obs_path)
-                        self.obs_status.set("已配置")
-
-                    # 加载推流配置路径
-                    stream_config_path = config.get('stream_config_path', '')
-                    if stream_config_path and os.path.exists(stream_config_path):
-                        self.stream_config_status.set("已配置")
-                    return
-            except Exception as e:
-                self.logger.error(f"加载配置失败: {str(e)}")
-
-        self.obs_status.set("未配置")
-        self.stream_config_status.set("未配置")
-
     def launch_obs(self):
         """启动OBS"""
         import os
         import subprocess
-        import json
 
         obs_path = self.obs_path.get()
 
@@ -785,55 +743,14 @@ class StreamCaptureGUI:
             messagebox.showerror("错误", "配置的OBS路径不存在，请重新配置")
             return
 
-        # 检查推流配置和捕获状态
-        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
-        stream_config_path = None
-        if os.path.exists(config_file):
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                stream_config_path = config.get('stream_config_path')
-
-        # 获取当前捕获的推流信息
-        server_url = self.server_address.get()
-        stream_key = self.stream_code.get()
-
-        if (not stream_config_path or not os.path.exists(stream_config_path) or
-            not server_url or not stream_key):
-            self.log_to_console("\n准备启动OBS...")
-            self.log_to_console("检测到推流配置不完整，将使用原有配置启动")
+        # 同步推流配置
+        sync_success = self.sync_stream_config(from_launch_button=True)
+        if not sync_success:
             result = messagebox.askokcancel(
-                "提示",
-                "如果没有配置捕获地址或未配置推流配置文件，将不会自动变更推流地址。\n是否继续启动OBS？"
+                "提示", "推流配置同步失败，将使用原有配置启动OBS。\n是否继续？"
             )
             if not result:
                 return
-        else:
-            try:
-                self.log_to_console("\n准备启动OBS...")
-                self.log_to_console("检测到推流配置完整，正在更新推流配置...")
-
-                # 创建标准格式的配置
-                service_config = {
-                    "type": "rtmp_custom",
-                    "settings": {
-                        "server": server_url,
-                        "key": stream_key,
-                        "use_auth": False,
-                        "bwtest": False
-                    }
-                }
-
-                # 保存更新后的配置
-                with open(stream_config_path, 'w', encoding='utf-8') as f:
-                    json.dump(service_config, f, indent=4)
-
-                self.log_to_console("推流配置更新成功")
-            except Exception as e:
-                self.log_to_console(f"更新推流配置失败: {str(e)}")
-                messagebox.showwarning(
-                    "警告",
-                    f"更新推流配置失败: {str(e)}\n将使用原有推流配置启动OBS"
-                )
 
         try:
             # 获取OBS安装目录
@@ -851,7 +768,9 @@ class StreamCaptureGUI:
         from tkinter import filedialog
 
         # 获取OBS配置文件夹路径
-        profiles_path = os.path.expanduser("~\\AppData\\Roaming\\obs-studio\\basic\\profiles")
+        profiles_path = os.path.expanduser(
+            "~\\AppData\\Roaming\\obs-studio\\basic\\profiles"
+        )
 
         if not os.path.exists(profiles_path):
             messagebox.showerror("错误", "未找到OBS配置文件夹，请确保已安装OBS并运行过")
@@ -861,7 +780,7 @@ class StreamCaptureGUI:
             title="选择service.json文件",
             initialdir=profiles_path,
             filetypes=[("JSON files", "service.json")],
-            initialfile="service.json"
+            initialfile="service.json",
         )
 
         if file_path:
@@ -886,12 +805,12 @@ class StreamCaptureGUI:
 
         config = {}
         if os.path.exists(config_file):
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
 
-        config['stream_config_path'] = file_path
+        config["stream_config_path"] = file_path
 
-        with open(config_file, 'w', encoding='utf-8') as f:
+        with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
 
     def show_obs_help(self):
@@ -904,16 +823,11 @@ class StreamCaptureGUI:
 
         # 添加文本区域
         text_area = scrolledtext.ScrolledText(
-            help_window,
-            wrap=tk.WORD,
-            width=50,
-            height=20,
-            padx=10,
-            pady=10
+            help_window, wrap=tk.WORD, width=50, height=20, padx=10, pady=10
         )
         text_area.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
         text_area.insert(tk.END, OBS_HELP_TEXT)
-        text_area.configure(state='disabled')  # 设置为只读
+        text_area.configure(state="disabled")  # 设置为只读
 
         # 窗口居中
         help_window.update_idletasks()
@@ -921,7 +835,7 @@ class StreamCaptureGUI:
         height = help_window.winfo_height()
         x = (help_window.winfo_screenwidth() // 2) - (width // 2)
         y = (help_window.winfo_screenheight() // 2) - (height // 2)
-        help_window.geometry(f'+{x}+{y}')
+        help_window.geometry(f"+{x}+{y}")
 
     def show_donation(self):
         """显示打赏对话框"""
@@ -943,3 +857,107 @@ class StreamCaptureGUI:
         thank_text = "无论多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！\n ps:直播有收入了随便来一点喜庆一下就好啦，学生党或者直播没收益就不用啦！当然，大佬请随意~ 预祝各位老师们大红大紫！"
         text_label = ttk.Label(donation_window, text=thank_text, wraplength=450)
         text_label.pack(pady=10)
+
+    def sync_stream_config(self, from_launch_button=False):
+        """同步推流配置到OBS"""
+        import json
+        import os
+        import psutil  # 需要添加此导入
+
+        # 检查推流配置文件
+        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+        stream_config_path = None
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                stream_config_path = config.get("stream_config_path")
+
+        # 获取当前捕获的推流信息
+        server_url = self.server_address.get()
+        stream_key = self.stream_code.get()
+
+        if not stream_config_path or not os.path.exists(stream_config_path) or not server_url or not stream_key:
+            messagebox.showwarning("警告", "请确保已配置OBS推流配置文件路径，并已成功捕获推流地址！")
+            return False
+
+        try:
+            self.log_to_console("\n正在同步推流配置...")
+
+            # 创建标准格式的配置
+            service_config = {
+                "type": "rtmp_custom",
+                "settings": {
+                    "server": server_url,
+                    "key": stream_key,
+                    "use_auth": False,
+                    "bwtest": False,
+                },
+            }
+
+            # 保存更新后的配置
+            with open(stream_config_path, "w", encoding="utf-8") as f:
+                json.dump(service_config, f, indent=4)
+
+            self.log_to_console("推流配置同步成功")
+
+            # 检查OBS是否正在运行
+            obs_running = False
+            for proc in psutil.process_iter(['name']):
+                if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
+                    obs_running = True
+                    break
+
+            # 根据调用来源和OBS运行状态显示不同的提示
+            if not from_launch_button:
+                if obs_running:
+                    result = messagebox.askokcancel(
+                        "提示", 
+                        "推流配置已同步。检测到OBS正在运行，需要重启OBS才能生效。\n是否立即重启OBS？"
+                    )
+                    if result:
+                        # 关闭当前OBS进程
+                        for proc in psutil.process_iter(['name']):
+                            if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
+                                proc.kill()
+                        # 启动新的OBS进程
+                        self.launch_obs()
+                else:
+                    result = messagebox.askokcancel(
+                        "提示", 
+                        "推流配置已同步。是否立即启动OBS？"
+                    )
+                    if result:
+                        self.launch_obs()
+
+            return True
+
+        except Exception as e:
+            error_msg = f"同步推流配置失败: {str(e)}"
+            self.log_to_console(error_msg)
+            messagebox.showerror("错误", error_msg)
+            return False
+
+    def open_plugin_manager(self):
+        """打开插件管理窗口"""
+        from gui.plugin_manager import PluginManagerFrame
+        
+        # 创建新窗口
+        plugin_window = tk.Toplevel(self.root)
+        plugin_window.title("插件管理")
+        plugin_window.geometry("400x300")
+        
+        # 使窗口模态
+        plugin_window.transient(self.root)
+        plugin_window.grab_set()
+        
+        # 添加插件管理界面
+        plugin_frame = PluginManagerFrame(plugin_window)
+        plugin_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 使窗口在屏幕中居中
+        plugin_window.update_idletasks()
+        width = plugin_window.winfo_width()
+        height = plugin_window.winfo_height()
+        x = (plugin_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (plugin_window.winfo_screenheight() // 2) - (height // 2)
+        plugin_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
