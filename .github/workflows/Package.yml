@@ -46,7 +46,7 @@ jobs:
         with:
           files: |
             douyin-rtmp.exe
-          draft: false
+          draft: true
           prerelease: false
           generate_release_notes: true
           make_latest: false
