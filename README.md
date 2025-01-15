@@ -25,7 +25,7 @@ Windows 10 及以上版本，低版本Windows未进行验证过，也许可行�
 2.  下载方式
     1.  在[Releases](https://github.com/heplex/douyin-rtmp/releases)页面选择喜欢的版本，点击douyin-rtmp.exe进行下载；
     2.  直接点击下载[douyin-rtmp.exe](https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe)
-    3.  国内用户代理下载地址[https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe](https://github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe)
+    3.  国内用户代理下载地址[https://gh-proxy.com/github.com/heplex/douyin-rtmp/releases/latest/download/main.exe](https://gh-proxy.com/github.com/heplex/douyin-rtmp/releases/latest/download/main.exe)
 3. 下载完成后，使用管理员权限进行运行；
 4. 在弹出的免责声明对话框中，点击“确定”按钮，继续使用则表示您同意以上条款；
 5. 如果未检测到Npcap，会提示先安装Npcap，安装完成后，重新启动软件；
