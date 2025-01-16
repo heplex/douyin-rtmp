@@ -299,9 +299,11 @@ class OBSUtils:
         try:
             # 获取OBS安装目录
             obs_dir = os.path.dirname(obs_path)
-            # 在OBS目录下启动程序
-            subprocess.Popen([obs_path], cwd=obs_dir)
+            
+            # 使用shell=True启动，这样会继承当前环境
+            subprocess.Popen(f'"{obs_path}"', cwd=obs_dir, shell=True)
             return True
+            
         except Exception as e:
             messagebox.showerror("错误", f"启动OBS失败: {str(e)}")
             return False

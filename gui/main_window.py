@@ -844,8 +844,6 @@ class StreamCaptureGUI:
         """同步推流配置到OBS"""
         server_url = self.server_address.get()
         stream_key = self.stream_code.get()
-        server_url = '123123123aaa'
-        stream_key = '124124124aaa'
         return self.obs_utils.sync_stream_config(server_url, stream_key, from_launch_button)
 
     def open_plugin_manager(self):

@@ -86,9 +86,8 @@ Windows 10 及以上版本，低版本 Windows 未进行验证过，也许可行
 
 **to 插件作者：如果不喜欢自己的插件在列表中，可以联系删除**
 
-| 插件名         | 功能     | 仓库地址                                   |
-| -------------- | -------- | ------------------------------------------ |
-| obs-multi-rtmp | 多端推流 | https://github.com/sorayuki/obs-multi-rtmp |
+[插件列表配置文件](https://github.com/heplex/douyin-rtmp/blob/config/config.json)
+
 
 ### 卸载
 
