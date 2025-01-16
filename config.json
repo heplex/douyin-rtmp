@@ -12,7 +12,7 @@
             "pluginName": "obs-auto-subtitle",
             "version": "1.1.0",
             "description": "实时字幕",
-            "releaseUrl": "https://github.com/sorayuki/obs-multi-rtmp/releases",
+            "releaseUrl": "https://github.com/summershrimp/obs-auto-subtitle/releases",
             "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/obs-auto-subtitle-1.1.0-windows-x64.zip",
             "installName": "obs-auto-subtitle"
         }
