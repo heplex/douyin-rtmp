@@ -1,5 +1,5 @@
 # 版本信息
-VERSION = "v1.0.3"
+VERSION = "v1.0.4"
 
 # GitHub 相关配置
 GITHUB_CONFIG = {
@@ -8,17 +8,18 @@ GITHUB_CONFIG = {
     "API_URL": "https://gh-proxy.protoniot.com/api/repos/heplex/douyin-rtmp/releases/latest",
     "RELEASE_URL": "https://github.com/heplex/douyin-rtmp/releases/latest",
     "DOWNLOAD_URL": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe",
-    "REPO_URL": "https://github.com/heplex/douyin-rtmp"
+    "REPO_URL": "https://github.com/heplex/douyin-rtmp",
 }
 
 import os
 import json
 from typing import Tuple
 
+
 def load_obs_config() -> Tuple[str, bool, bool]:
     """
     加载OBS配置
-    
+
     Returns:
         Tuple[str, bool, bool]: (obs路径, obs是否已配置, 推流配置是否已配置)
     """

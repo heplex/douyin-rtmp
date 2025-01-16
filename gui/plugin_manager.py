@@ -37,7 +37,7 @@ class PluginManagerFrame(ttk.Frame):
 
         # 创建标题标签
         title_label = ttk.Label(
-            main_frame, text="OBS 插件管理", font=("微软雅黑", 12, "bold")
+            main_frame, text="OBS 插件管理（一般采用压缩包形式安装）", font=("微软雅黑", 12, "bold")
         )
         title_label.pack(pady=(0, 10))
 

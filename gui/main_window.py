@@ -289,7 +289,6 @@ class StreamCaptureGUI:
         ad_frame.grid(row=1, column=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5)
         ad_frame.columnconfigure(0, weight=1)
 
-        # 创建Logo按钮
         try:
             github_icon = tk.PhotoImage(file=resource_path("assets/github.png"))
             # 创建一个无边框的Label来显示图标
@@ -314,18 +313,22 @@ class StreamCaptureGUI:
             repo_label.grid(row=1, column=0, pady=(0, 5), padx=5)
             repo_label.bind("<Button-1>", lambda e: self.open_github())
 
-            # 添加广告文本
-            ad_text = scrolledtext.ScrolledText(
-                ad_frame, wrap=tk.WORD, width=20, height=10
+            # 添加广告文本区域
+            self.ad_text = scrolledtext.ScrolledText(
+                ad_frame, wrap=tk.WORD, width=20, height=15
             )
-            ad_text.grid(
+            self.ad_text.grid(
                 row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5, padx=5
             )
-            ad_text.insert(tk.END, ADVERTISEMENT_TEXT)
-            ad_text.configure(state="disabled")  # 设置为只读
+            
+            # 先显示默认广告内容
+            self.ad_text.insert(tk.END, ADVERTISEMENT_TEXT)
+            self.ad_text.configure(state="disabled")
 
-        except Exception as e:
-            self.logger.error(f"加载GitHub图标失败: {str(e)}")
+            # 在窗口加载完成后异步获取广告内容
+            self.root.after(1000, self.async_fetch_ad_content)
+
+        except Exception:
             # 如果图标加载失败，使用文本链接样式的Label
             link_label = ttk.Label(
                 ad_frame,
@@ -433,7 +436,7 @@ class StreamCaptureGUI:
         about_text = (
             f"抖音直播推流地址获取工具\n"
             f"版本：{VERSION}\n"
-            f"作者：kumquat\n\n"
+            f"作者：关水来了\n\n"
             f"GitHub：{GITHUB_CONFIG['REPO_URL']}\n\n"
             f"本工具仅供学习交流使用"
         )
@@ -961,3 +964,31 @@ class StreamCaptureGUI:
         x = (plugin_window.winfo_screenwidth() // 2) - (width // 2)
         y = (plugin_window.winfo_screenheight() // 2) - (height // 2)
         plugin_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+    def async_fetch_ad_content(self):
+        """异步获取广告内容"""
+        def fetch_content():
+            try:
+                import requests
+                response = requests.get(
+                    'https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/ads', 
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    self.root.after(0, self.update_ad_content, response.text)
+            except Exception:
+                pass
+
+        thread = threading.Thread(target=fetch_content)
+        thread.daemon = True
+        thread.start()
+
+    def update_ad_content(self, content):
+        """更新广告内容"""
+        try:
+            self.ad_text.configure(state="normal")
+            self.ad_text.delete(1.0, tk.END)
+            self.ad_text.insert(tk.END, content)
+            self.ad_text.configure(state="disabled")
+        except Exception:
+            pass

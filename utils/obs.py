@@ -1,10 +1,11 @@
 import os
-import json
 import requests
 import zipfile
 from pathlib import Path
 from tkinter import messagebox
 from utils.config import load_obs_config
+import tkinter as tk
+from tkinter import ttk
 
 
 class OBSUtils:
@@ -86,44 +87,117 @@ class OBSUtils:
         # 在方法内部获取后缀
         suffix = Path(download_url).suffix.lower()
 
-        # 下载文件
-        response = requests.get(download_url, stream=True)
-        if response.status_code != 200:
-            messagebox.showerror("错误", "下载文件失败！")
-            return False
+        # 创建进度条对话框
+        progress_window = tk.Toplevel()
+        progress_window.title("安装进度")
+        progress_window.geometry("300x150")
+        progress_window.transient(tk._default_root)
+        progress_window.resizable(False, False)
+        
+        # 立即设置窗口位置到屏幕中央
+        screen_width = progress_window.winfo_screenwidth()
+        screen_height = progress_window.winfo_screenheight()
+        window_width = 300
+        window_height = 150
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        progress_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        progress_window.grab_set()
 
-        # 保存文件
-        filename = f"{install_name}{suffix}"
-        download_path = os.path.join("downloads", filename)
-        os.makedirs("downloads", exist_ok=True)
+        # 添加标签和进度条
+        label = ttk.Label(progress_window, text="正在准备下载...", font=("微软雅黑", 9))
+        label.pack(pady=10)
+        
+        progress_var = tk.DoubleVar()
+        progress_bar = ttk.Progressbar(
+            progress_window, 
+            variable=progress_var,
+            maximum=100,
+            mode='determinate',
+            length=200
+        )
+        progress_bar.pack(pady=10)
+        
+        percentage_label = ttk.Label(progress_window, text="0%", font=("微软雅黑", 9))
+        percentage_label.pack(pady=5)
+        
+        # 立即更新窗口显示
+        progress_window.update()
 
-        with open(download_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-
-        # 如果是zip文件，解压到OBS目录
-        if suffix == ".zip":
-            try:
-                install_path = self.get_plugin_install_path()
-                if not install_path:
-                    messagebox.showerror("错误", "无法获取插件安装路径！")
-                    return False
-
-                with zipfile.ZipFile(download_path, "r") as zip_ref:
-                    zip_ref.extractall(install_path)
-
-                # 删除下载的zip文件
-                os.remove(download_path)
-                return True
-            except Exception as e:
-                messagebox.showerror("错误", f"解压文件失败：{str(e)}")
+        try:
+            # 更新标签文本
+            label.config(text="正在连接服务器...")
+            progress_window.update()
+            
+            # 开始下载
+            response = requests.get(download_url, stream=True)
+            if response.status_code != 200:
+                messagebox.showerror("错误", "下载文件失败！")
+                progress_window.destroy()
                 return False
 
-        # 删除下载的zip文件
-        os.remove(download_path)
-        messagebox.showerror("错误", f"{suffix}后缀文件不支持安装")
-        return False
+            # 获取文件大小
+            total_size = int(response.headers.get('content-length', 0))
+            
+            # 更新标签文本
+            label.config(text="正在下载插件...")
+            progress_window.update()
+            
+            # 保存文件
+            filename = f"{install_name}{suffix}"
+            download_path = os.path.join("downloads", filename)
+            os.makedirs("downloads", exist_ok=True)
+
+            block_size = 1024  # 1 KB
+            downloaded_size = 0
+
+            with open(download_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=block_size):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded_size += len(chunk)
+                        # 更新进度
+                        if total_size:
+                            progress = (downloaded_size / total_size) * 100
+                            progress_var.set(progress)
+                            percentage_label.config(text=f"{progress:.1f}%")
+                            progress_window.update()
+
+            # 如果是zip文件，解压到OBS目录
+            if suffix == ".zip":
+                label.config(text="正在解压文件...")
+                progress_window.update()
+                
+                try:
+                    install_path = self.get_plugin_install_path()
+                    if not install_path:
+                        messagebox.showerror("错误", "无法获取插件安装路径！")
+                        progress_window.destroy()
+                        return False
+
+                    with zipfile.ZipFile(download_path, "r") as zip_ref:
+                        zip_ref.extractall(install_path)
+
+                    # 删除下载的zip文件
+                    os.remove(download_path)
+                    progress_window.destroy()
+                    return True
+                except Exception as e:
+                    messagebox.showerror("错误", f"解压文件失败：{str(e)}")
+                    progress_window.destroy()
+                    return False
+
+            # 删除下载的文件
+            os.remove(download_path)
+            progress_window.destroy()
+            messagebox.showerror("错误", f"{suffix}后缀文件不支持安装")
+            return False
+            
+        except Exception as e:
+            progress_window.destroy()
+            messagebox.showerror("错误", f"下载失败：{str(e)}")
+            return False
 
     def uninstall_plugin(self, plugin_config):
         import os
@@ -164,6 +238,7 @@ class OBSUtils:
                         os.remove(file)
 
                 return True
-
+            messagebox.showerror("错误", f"暂不支持{suffix}后缀文件卸载，请尝试在obs插件路径手动删除")
+            return False
         except Exception as e:
             return False
