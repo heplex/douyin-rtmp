@@ -6,11 +6,17 @@ from tkinter import messagebox
 from utils.config import load_obs_config
 import tkinter as tk
 from tkinter import ttk
+import psutil
 
 
 class OBSUtils:
     def __init__(self):
         self._installing = False
+        self.logger = None  # 添加logger属性
+
+    def set_logger(self, logger):
+        """设置logger"""
+        self.logger = logger
 
     def get_obs_path(self):
         """获取OBS安装路径"""
@@ -241,4 +247,138 @@ class OBSUtils:
             messagebox.showerror("错误", f"暂不支持{suffix}后缀文件卸载，请尝试在obs插件路径手动删除")
             return False
         except Exception as e:
+            return False
+
+    def is_obs_running(self):
+        """检查OBS是否正在运行"""
+        for proc in psutil.process_iter(['name']):
+            if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
+                return True
+        return False
+
+    def kill_obs_process(self):
+        """结束OBS进程"""
+        for proc in psutil.process_iter(['name']):
+            if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
+                proc.kill()
+
+    def launch_obs(self, sync_stream_config_callback=None):
+        """
+        启动OBS
+        
+        Args:
+            sync_stream_config_callback: 同步推流配置的回调函数
+            
+        Returns:
+            bool: 启动是否成功
+        """
+        import os
+        import subprocess
+        
+        obs_path = self.get_obs_path()
+        
+        if not obs_path:
+            messagebox.showwarning("警告", "请先配置OBS路径")
+            return False
+            
+        if not os.path.exists(obs_path):
+            messagebox.showerror("错误", "配置的OBS路径不存在，请重新配置")
+            return False
+            
+        # 如果提供了同步配置回调函数，则执行同步
+        if sync_stream_config_callback:
+            sync_success = sync_stream_config_callback(from_launch_button=True)
+            if not sync_success:
+                result = messagebox.askokcancel(
+                    "提示", 
+                    "推流配置同步失败，将使用原有配置启动OBS。\n是否继续？"
+                )
+                if not result:
+                    return False
+                    
+        try:
+            # 获取OBS安装目录
+            obs_dir = os.path.dirname(obs_path)
+            # 在OBS目录下启动程序
+            subprocess.Popen([obs_path], cwd=obs_dir)
+            return True
+        except Exception as e:
+            messagebox.showerror("错误", f"启动OBS失败: {str(e)}")
+            return False
+
+    def sync_stream_config(self, server_url, stream_key, from_launch_button=False):
+        """
+        同步推流配置到OBS
+        
+        Args:
+            server_url (str): 推流服务器地址
+            stream_key (str): 推流密钥
+            from_launch_button (bool): 是否从启动按钮调用
+            
+        Returns:
+            bool: 同步是否成功
+        """
+        import json
+        import os
+        from tkinter import messagebox
+
+        # 检查推流配置文件
+        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+        stream_config_path = None
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                stream_config_path = config.get("stream_config_path")
+
+        if not stream_config_path or not os.path.exists(stream_config_path) or not server_url or not stream_key:
+            messagebox.showwarning("警告", "请确保已配置OBS推流配置文件路径，并已成功捕获推流地址！")
+            return False
+
+        try:
+            if self.logger:
+                self.logger.info("\n正在同步推流配置...")
+
+            # 创建标准格式的配置
+            service_config = {
+                "type": "rtmp_custom",
+                "settings": {
+                    "server": server_url,
+                    "key": stream_key,
+                    "use_auth": False,
+                    "bwtest": False,
+                },
+            }
+
+            # 保存更新后的配置
+            with open(stream_config_path, "w", encoding="utf-8") as f:
+                json.dump(service_config, f, indent=4)
+
+            if self.logger:
+                self.logger.info("推流配置同步成功")
+
+            # 根据调用来源和OBS运行状态显示不同的提示
+            if not from_launch_button:
+                if self.is_obs_running():
+                    result = messagebox.askokcancel(
+                        "提示", 
+                        "推流配置已同步。检测到OBS正在运行，需要重启OBS才能生效。\n是否立即重启OBS？如果OBS有弹窗，请选择正常运行。"
+                    )
+                    if result:
+                        self.kill_obs_process()
+                        self.launch_obs()
+                else:
+                    result = messagebox.askokcancel(
+                        "提示", 
+                        "推流配置已同步。是否立即启动OBS？"
+                    )
+                    if result:
+                        self.launch_obs()
+
+            return True
+
+        except Exception as e:
+            error_msg = f"同步推流配置失败: {str(e)}"
+            if self.logger:
+                self.logger.error(error_msg)
+            messagebox.showerror("错误", error_msg)
             return False

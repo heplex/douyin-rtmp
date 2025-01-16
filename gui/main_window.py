@@ -99,6 +99,11 @@ class StreamCaptureGUI:
         # 在窗口加载完成后检查更新
         self.root.after(1000, self.async_check_updates)
 
+        # 初始化OBS工具类
+        from utils.obs import OBSUtils
+        self.obs_utils = OBSUtils()
+        self.obs_utils.set_logger(self.logger)  # 设置logger
+
     def create_widgets(self):
         # 创建菜单栏
         menubar = tk.Menu(self.root)
@@ -733,37 +738,11 @@ class StreamCaptureGUI:
 
     def launch_obs(self):
         """启动OBS"""
-        import os
-        import subprocess
-
-        obs_path = self.obs_path.get()
-
-        if not obs_path:
-            messagebox.showwarning("警告", "请先配置OBS路径")
-            return
-
-        if not os.path.exists(obs_path):
-            messagebox.showerror("错误", "配置的OBS路径不存在，请重新配置")
-            return
-
-        # 同步推流配置
-        sync_success = self.sync_stream_config(from_launch_button=True)
-        if not sync_success:
-            result = messagebox.askokcancel(
-                "提示", "推流配置同步失败，将使用原有配置启动OBS。\n是否继续？"
-            )
-            if not result:
-                return
-
-        try:
-            # 获取OBS安装目录
-            obs_dir = os.path.dirname(obs_path)
-            # 在OBS目录下启动程序
-            subprocess.Popen([obs_path], cwd=obs_dir)
+        success = self.obs_utils.launch_obs(
+            sync_stream_config_callback=self.sync_stream_config
+        )
+        if success:
             self.log_to_console("OBS启动成功")
-        except Exception as e:
-            self.log_to_console(f"启动OBS失败: {str(e)}")
-            messagebox.showerror("错误", f"启动OBS失败: {str(e)}")
 
     def configure_stream(self):
         """配置推流设置"""
@@ -863,82 +842,11 @@ class StreamCaptureGUI:
 
     def sync_stream_config(self, from_launch_button=False):
         """同步推流配置到OBS"""
-        import json
-        import os
-        import psutil  # 需要添加此导入
-
-        # 检查推流配置文件
-        config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
-        stream_config_path = None
-        if os.path.exists(config_file):
-            with open(config_file, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                stream_config_path = config.get("stream_config_path")
-
-        # 获取当前捕获的推流信息
         server_url = self.server_address.get()
         stream_key = self.stream_code.get()
-
-        if not stream_config_path or not os.path.exists(stream_config_path) or not server_url or not stream_key:
-            messagebox.showwarning("警告", "请确保已配置OBS推流配置文件路径，并已成功捕获推流地址！")
-            return False
-
-        try:
-            self.log_to_console("\n正在同步推流配置...")
-
-            # 创建标准格式的配置
-            service_config = {
-                "type": "rtmp_custom",
-                "settings": {
-                    "server": server_url,
-                    "key": stream_key,
-                    "use_auth": False,
-                    "bwtest": False,
-                },
-            }
-
-            # 保存更新后的配置
-            with open(stream_config_path, "w", encoding="utf-8") as f:
-                json.dump(service_config, f, indent=4)
-
-            self.log_to_console("推流配置同步成功")
-
-            # 检查OBS是否正在运行
-            obs_running = False
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
-                    obs_running = True
-                    break
-
-            # 根据调用来源和OBS运行状态显示不同的提示
-            if not from_launch_button:
-                if obs_running:
-                    result = messagebox.askokcancel(
-                        "提示", 
-                        "推流配置已同步。检测到OBS正在运行，需要重启OBS才能生效。\n是否立即重启OBS？"
-                    )
-                    if result:
-                        # 关闭当前OBS进程
-                        for proc in psutil.process_iter(['name']):
-                            if proc.info['name'] and 'obs64.exe' in proc.info['name'].lower():
-                                proc.kill()
-                        # 启动新的OBS进程
-                        self.launch_obs()
-                else:
-                    result = messagebox.askokcancel(
-                        "提示", 
-                        "推流配置已同步。是否立即启动OBS？"
-                    )
-                    if result:
-                        self.launch_obs()
-
-            return True
-
-        except Exception as e:
-            error_msg = f"同步推流配置失败: {str(e)}"
-            self.log_to_console(error_msg)
-            messagebox.showerror("错误", error_msg)
-            return False
+        server_url = '123123123aaa'
+        stream_key = '124124124aaa'
+        return self.obs_utils.sync_stream_config(server_url, stream_key, from_launch_button)
 
     def open_plugin_manager(self):
         """打开插件管理窗口"""
