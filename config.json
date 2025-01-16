@@ -23,6 +23,14 @@
             "releaseUrl": "https://github.com/summershrimp/obs-auto-subtitle/releases",
             "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/obs-auto-subtitle-1.1.0-windows-x64.zip",
             "installName": "obs-auto-subtitle"
+        },
+        {
+            "pluginName": "Waveform",
+            "version": "v1.8.1",
+            "description": "声音可视化",
+            "releaseUrl": "https://github.com/phandasm/waveform/releases",
+            "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/Waveform_v1.8.1_x86_64.zip",
+            "installName": "obs-auto-subtitle"
         }
     ]
 }
