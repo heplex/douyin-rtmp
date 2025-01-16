@@ -1,0 +1,12 @@
+{
+    "plugins": [
+        {
+            "pluginName": "obs-multi-rtmp",
+            "version": "0.6.0.1",
+            "description": "多路推流工具,安装后在停靠窗口->多路推流勾选",
+            "releaseUrl": "https://github.com/sorayuki/obs-multi-rtmp/releases",
+            "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/obs-multi-rtmp-0.6.0.1-windows-x64.zip",
+            "installName": "obs-multi-rtmp"
+        }
+    ]
+}
