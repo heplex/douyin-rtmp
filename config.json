@@ -9,6 +9,14 @@
             "installName": "obs-multi-rtmp"
         },
         {
+            "pluginName": "distroav(OBS NDI)",
+            "version": "6.0.0",
+            "description": "可以将OBS的输出流传输到其他计算机上",
+            "releaseUrl": "https://github.com/DistroAV/DistroAV/releases",
+            "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/distroav-6.0.0-windows-x64.zip",
+            "installName": "distroav"
+        },
+        {
             "pluginName": "obs-auto-subtitle",
             "version": "1.1.0",
             "description": "实时字幕",
