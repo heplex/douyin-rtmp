@@ -1,9 +1,9 @@
 如果觉得好用
 请给项目点个star，谢谢！
 
-工具交流QQ群：870101332
+交流群：
+QQ群：870101332
 微信群：复制下面网址到浏览器打开
 https://group.kumquat.ink
 
-更新失败可以使用以下地址直接下载最新版本：
-https://gh-proxy.com/github.com/heplex/douyin-rtmp/releases/latest/download/douyin-rtmp.exe
+更新失败的话也可以进上面的网址下载最新版！
