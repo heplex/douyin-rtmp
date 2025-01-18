@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from utils.network import NetworkInterface
 from core.capture import PacketCapture
+import psutil  # 添加到文件顶部的导入语句中
 
 
 class ControlPanel:
@@ -140,6 +141,15 @@ class ControlPanel:
         """切换捕获状态"""
         if not self.is_capturing:
             # 开始捕获
+            # 检查直播伴侣是否运行
+            if self.check_douyin_live_running():
+                response = messagebox.askyesno(
+                    "警告",
+                    "检测到抖音直播伴侣正在运行，请确认处于未开播状态，如果已开播将捕获不到。\n\n是否继续捕获？"
+                )
+                if not response:
+                    return
+
             self.is_capturing = True
             self.capture_btn.configure(text="停止捕获")
             self.interface_combo.configure(state=tk.DISABLED)
@@ -205,21 +215,18 @@ class ControlPanel:
             self.on_listening_changed()  # 重置接口选择状态
             self.status_text.set("已停止")
 
-    def on_capture_click(self):
-        """处理捕获按钮点击事件"""
-        if not self.is_capturing:
-            # 开始捕获
-            selected_interface = self.interface_combo.get()
-            if not selected_interface:
-                messagebox.showerror("错误", "请选择网络接口！")
-                return
-
-            self.capture.start(selected_interface)
-            self.update_capture_status(True)
-        else:
-            # 停止捕获
-            self.capture.stop()
-            self.update_capture_status(False)
+    def check_douyin_live_running(self):
+        """检查抖音直播伴侣是否正在运行"""
+        for proc in psutil.process_iter(["name", "cmdline"]):
+            try:
+                # 检查进程名和命令行参数
+                if proc.info["cmdline"]:
+                    cmdline = " ".join(proc.info["cmdline"])
+                    if "直播伴侣" in cmdline:
+                        return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return False
 
     def on_capture_complete(self, server_address, stream_code):
         """捕获完成的回调函数"""
