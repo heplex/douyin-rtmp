@@ -9,7 +9,7 @@ from core.capture import PacketCapture
 from core.npcap import NpcapManager
 from utils.logger import Logger
 from utils.network import NetworkInterface
-from gui.widgets import create_control_panel, create_log_panel, create_help_panel
+from gui.widgets import create_control_panel, create_log_panel
 from utils.config import VERSION, GITHUB_CONFIG, load_obs_config
 import threading
 from utils.version import check_for_updates
@@ -128,100 +128,11 @@ class StreamCaptureGUI:
         # 主布局使用网格
         self.main_frame.columnconfigure(1, weight=1)
 
-        # 创建标签页控件
-        self.log_notebook = ttk.Notebook(self.main_frame)
-        self.log_notebook.grid(
-            row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S)
-        )
-        self.main_frame.grid_rowconfigure(1, weight=1)
-
-        # 创建数据包日志标签页
-        packet_frame = ttk.Frame(self.log_notebook, padding="5")
-        self.packet_console = scrolledtext.ScrolledText(
-            packet_frame, wrap=tk.WORD, height=8
-        )
-        self.packet_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        packet_frame.grid_columnconfigure(0, weight=1)
-        packet_frame.grid_rowconfigure(0, weight=1)
-
-        # 数据包日志清除按钮
-        ttk.Button(
-            packet_frame,
-            text="清除数据包日志",
-            command=self.clear_packet_console,
-            width=15,
-        ).grid(row=1, column=0, pady=5)
-
-        # 创建主控制台标签页
-        console_frame = ttk.Frame(self.log_notebook, padding="5")
-        self.console = scrolledtext.ScrolledText(console_frame, wrap=tk.WORD, height=8)
-        self.console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        console_frame.grid_columnconfigure(0, weight=1)
-        console_frame.grid_rowconfigure(0, weight=1)
-
-        # 控制台清除按钮
-        ttk.Button(
-            console_frame, text="清除控制台", command=self.clear_console, width=12
-        ).grid(row=1, column=0, pady=5)
-
-        # 添加标签页
-        self.log_notebook.add(console_frame, text="控制台输出")
-        self.log_notebook.add(packet_frame, text="数据包监控")
-
-        # 上半部分 - 控制面板
-        control_frame = ttk.LabelFrame(self.main_frame, text="控制面板", padding="5")
-        control_frame.grid(
-            row=0, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
-        )
-        control_frame.columnconfigure(1, weight=1)
-
-        # 网络接口选择（第一行）
-        ttk.Label(control_frame, text="网络接口:").grid(
-            row=0, column=0, sticky=tk.W, pady=5, padx=5
-        )
-        self.interface_combo = ttk.Combobox(
-            control_frame, textvariable=self.selected_interface, state="readonly"
-        )
-        self.interface_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
-        ttk.Button(
-            control_frame, text="刷新", command=self.refresh_interfaces, width=8
-        ).grid(row=0, column=2, padx=5)
-
-        # 状态和控制按钮（第二行）
-        self.capture_btn = ttk.Button(
-            control_frame, text="开始捕获", command=self.toggle_capture, width=10
-        )
-        self.capture_btn.grid(row=1, column=0, pady=5, padx=5)
-        ttk.Label(control_frame, text="状态:").grid(
-            row=1, column=1, sticky=tk.W, padx=5
-        )
-        ttk.Label(control_frame, textvariable=self.status_text).grid(
-            row=1, column=1, sticky=tk.W, padx=60
-        )
-
-        # 服务器地址显示
-        ttk.Label(control_frame, text="推流服务器:").grid(
-            row=2, column=0, sticky=tk.W, pady=5, padx=5
-        )
-        self.server_entry = ttk.Entry(control_frame, textvariable=self.server_address)
-        self.server_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
-
-        # 服务器地址操作按钮框
-        server_btn_frame = ttk.Frame(control_frame)
-        server_btn_frame.grid(row=2, column=2, padx=5)
-
-        ttk.Button(
-            server_btn_frame,
-            text="复制",
-            command=lambda: self.copy_to_clipboard(self.server_address.get()),
-            width=8,
-        ).pack(side=tk.LEFT, padx=2)
-
         # 创建控制面板
         self.control_panel = create_control_panel(self)
 
-        # 创建日志面板
-        self.log_panel = create_log_panel(self)
+        # 创建日志面板并保存引用
+        self.log_notebook = create_log_panel(self)  # 保存notebook的引用以供后续使用
 
         # 添加底栏
         self.create_status_bar()
@@ -564,7 +475,7 @@ class StreamCaptureGUI:
 
         # 如果发现关键数据包，自动切换到控制台标签
         if ">>> 发现" in message:
-            self.log_notebook.select(1)  # 切换到控制台输出标签
+            self.log_notebook.select(1)  # 切换到数据包监控标签
 
     def install_npcap(self):
         """手动安装 Npcap"""

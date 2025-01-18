@@ -111,6 +111,9 @@ def create_log_panel(gui):
 
     # 设置日志控件
     gui.logger.set_consoles(system_console, packet_console)
+    
+    # 保存packet_console的引用
+    gui.packet_console = packet_console
 
     # 添加右键菜单
     def create_context_menu(widget, is_packet=False):
@@ -142,26 +145,3 @@ def create_log_panel(gui):
     packet_console.bind("<Button-3>", lambda e: show_context_menu(e, packet_menu))
 
     return notebook
-
-
-def create_help_panel(gui):
-    """创建使用说明面板"""
-    frame = ttk.LabelFrame(gui.main_frame, text="使用说明", padding="5")
-    frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
-
-    help_text = (
-        "使用说明：\n"
-        "1. 选择正确的网卡（一般是以太网或无线网卡）\n"
-        "2. 点击[开始捕获]，查看数据包监控是否有流量，没有任何输出说明网卡选择错误\n"
-        "3. 在抖音直播伴侣中点击[开始直播]\n"
-        "4. 等待推流地址自动显示\n"
-        "5. 点击复制即可\n\n"
-        "注意：\n"
-        "1. 如果不能正常获取，可以点击工具，尝试重新安装Npcap；\n"
-        "2. 关闭电脑中有大量流量请求的应用，可能会干扰到推流地址的获取；\n"
-    )
-
-    help_label = ttk.Label(frame, text=help_text, justify=tk.LEFT)
-    help_label.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
-
-    return frame
