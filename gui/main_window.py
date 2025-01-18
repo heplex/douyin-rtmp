@@ -21,6 +21,8 @@ from gui.control import ControlPanel
 from utils.resource import resource_path
 from utils.config import get_config, set_config
 from gui.contribute import ContributeDialog
+import json
+import requests
 
 
 class StreamCaptureGUI:
@@ -94,10 +96,14 @@ class StreamCaptureGUI:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="帮助", menu=help_menu)
         help_menu.add_command(
+            label="帮助中心",
+            command=self.open_helper_center
+        )
+        help_menu.add_command(label="检查软件更新", command=self.check_updates_manually)
+        help_menu.add_command(
             label="GitHub 仓库",
             command=lambda: webbrowser.open(GITHUB_CONFIG["RELEASE_URL"]),
         )
-        help_menu.add_command(label="检查软件更新", command=self.check_updates_manually)
         help_menu.add_separator()
         help_menu.add_command(label=f"关于 ({VERSION})", command=self.show_about)
 
@@ -295,3 +301,20 @@ class StreamCaptureGUI:
     def show_contribute(self):
         """显示贡献榜对话框"""
         ContributeDialog(self.root)
+
+    def get_helper_center_url(self):
+        """获取帮助中心URL"""
+        try:
+            response = requests.get("https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/helper.json")
+            data = response.json()
+            return data.get("helperCenter")
+        except Exception as e:
+            self.logger.error(f"获取帮助中心地址失败: {str(e)}")
+            messagebox.showerror("错误", "获取帮助中心地址失败")
+            return None
+
+    def open_helper_center(self):
+        """打开帮助中心"""
+        url = self.get_helper_center_url()
+        if url:
+            webbrowser.open(url)
