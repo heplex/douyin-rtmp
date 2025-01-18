@@ -45,3 +45,61 @@ def load_obs_config() -> Tuple[str, bool, bool]:
             pass
 
     return obs_path, obs_configured, stream_configured
+
+def set_config(key: str, value: any) -> bool:
+    """
+    设置配置参数
+
+    Args:
+        key (str): 配置键名
+        value (any): 配置值
+
+    Returns:
+        bool: 设置是否成功
+    """
+    config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+    config = {}
+    
+    # 确保配置目录存在
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
+    
+    # 如果配置文件存在，先读取现有配置
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception:
+            return False
+    
+    # 更新或添加新配置
+    config[key] = value
+    
+    # 保存配置
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception:
+        return False
+
+def get_config(key: str) -> any:
+    """
+    获取配置参数
+
+    Args:
+        key (str): 配置键名
+
+    Returns:
+        any: 配置值，如果不存在返回 None
+    """
+    config_file = os.path.expanduser("~/.douyin-rtmp/config.json")
+    
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                return config.get(key)
+        except Exception:
+            return None
+    
+    return None

@@ -10,7 +10,7 @@ def main():
         return
 
     root = tk.Tk()
-    app = StreamCaptureGUI(root)
+    StreamCaptureGUI(root)
     root.mainloop()
 
 if __name__ == "__main__":

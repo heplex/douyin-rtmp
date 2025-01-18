@@ -231,6 +231,7 @@ def create_donation_dialog(parent, logger, resource_path):
     text_label.pack(pady=10)
 
 def create_about_dialog(root, version):
+    from utils.config import GITHUB_CONFIG
     """显示关于对话框"""
     about_text = (
         f"抖音直播推流地址获取工具\n"

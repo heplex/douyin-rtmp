@@ -115,54 +115,92 @@ class NetworkInterface:
     def load_interfaces(self):
         """加载网络接口列表"""
         try:
-            windows_interfaces = get_windows_if_list()
-            interface_status = self._get_interface_status()
+            # 首先获取 scapy 的接口列表作为参考
+            scapy_interfaces = {
+                iface.get('name'): iface 
+                for iface in get_windows_if_list()
+            }
+            
+            # 使用 PowerShell 获取网络适配器信息
+            ps_command = """
+            Get-NetAdapter | 
+            Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress, MediaConnectionState, InterfaceIndex |
+            Where-Object { $_.InterfaceDescription -notmatch '(Loopback|VMware|VirtualBox|Hyper-V|Bluetooth)' } |
+            ConvertTo-Csv -NoTypeInformation
+            """
+            ps_output = subprocess.check_output(
+                ["powershell", "-Command", ps_command],
+                stderr=subprocess.PIPE
+            ).decode('utf-8', errors='ignore')
             
             active_interfaces = []
             inactive_interfaces = []
             default_interface = None
 
-            for iface in windows_interfaces:
+            # 解析 PowerShell 输出
+            for line in ps_output.split('\n')[1:]:  # 跳过标题行
+                if not line.strip():
+                    continue
+                
                 try:
-                    name = iface['name']
-                    desc = iface.get('description', 'Unknown Description').strip() or 'Unknown Description'
-                    ip_addresses = [
-                        ip for ip in iface.get('ips', [])
-                        if self._is_valid_ip(str(ip))
-                    ]
-                    
-                    # 检查是否为VPN或虚拟适配器
-                    is_vpn = any(vpn_keyword in desc.lower() 
-                               for vpn_keyword in ['vpn', 'virtual', '虚拟'])
-                    
-                    # 对于VPN适配器，必须同时满足有效IP和接口状态为活动
-                    if is_vpn:
-                        is_active = bool(ip_addresses) and interface_status.get(name, False)
-                    else:
-                        is_active = bool(ip_addresses) or interface_status.get(name, False)
-                    
-                    display_desc = desc[:47] + '...' if len(desc) > 50 else desc
-                    display_name = f"{name} [{'已连接' if is_active else '未连接'}] - {display_desc}"
+                    parts = line.strip().strip('"').split('","')
+                    if len(parts) >= 7:  # 确保有足够的字段
+                        name = parts[0]
+                        desc = parts[1]
+                        status = parts[2]
+                        link_speed = parts[3]
+                        mac_address = parts[4]
+                        media_state = parts[5]
+                        interface_index = parts[6]
+                        
+                        # 在 scapy 接口列表中查找匹配的接口
+                        scapy_iface = None
+                        for iface_data in scapy_interfaces.items():
+                            if (iface_data.get('description', '').strip() == desc.strip() or
+                                iface_data.get('win_index') == interface_index):
+                                scapy_iface = iface_data
+                                break
+                        
+                        if not scapy_iface:
+                            self.logger.warning(f"找不到匹配的 Scapy 接口: {name} ({desc})")
+                            continue
+                            
+                        # 使用 scapy 接口名称
+                        capture_name = scapy_iface['name']
+                        
+                        # 检查是否为VPN适配器
+                        is_vpn = any(vpn_keyword in desc.lower() 
+                                   for vpn_keyword in ['vpn', 'virtual', '虚拟'])
+                        
+                        # 判断接口是否活动
+                        is_active = (status == "Up" and link_speed != "0 bps") or (
+                            is_vpn and status == "Up" and media_state == "Connected"
+                        )
+                        
+                        display_desc = desc[:47] + '...' if len(desc) > 50 else desc
+                        # 在显示名称中包含实际的捕获名称
+                        display_name = f"{capture_name} [{'已连接' if is_active else '未连接'}] - {display_desc}"
 
-                    if is_active:
-                        active_interfaces.append(display_name)
-                        # 不将VPN接口作为默认接口
-                        if not default_interface and not is_vpn and ip_addresses and (
-                            "ethernet" in desc.lower() or "以太网" in desc
-                        ):
-                            default_interface = display_name
-                    else:
-                        inactive_interfaces.append(display_name)
+                        if is_active:
+                            active_interfaces.append(display_name)
+                            if not default_interface and not is_vpn and (
+                                "ethernet" in desc.lower() or "以太网" in desc
+                            ):
+                                default_interface = display_name
+                        else:
+                            inactive_interfaces.append(display_name)
 
-                    self.logger.info(
-                        f"接口: {name}\n"
-                        f"   描述: {desc}\n"
-                        f"   类型: {'VPN/虚拟' if is_vpn else '物理'}\n"
-                        f"   状态: {'已连接' if is_active else '未连接'}\n"
-                        f"   有效IP地址: {', '.join(str(ip) for ip in ip_addresses) if ip_addresses else '无'}"
-                    )
+                        self.logger.info(
+                            f"接口: {capture_name}\n"
+                            f"   描述: {desc}\n"
+                            f"   类型: {'VPN/虚拟' if is_vpn else '物理'}\n"
+                            f"   状态: {'已连接' if is_active else '未连接'}\n"
+                            f"   速度: {link_speed}\n"
+                            f"   MAC地址: {mac_address}\n"
+                            f"   接口索引: {interface_index}"
+                        )
                 except Exception as e:
-                    self.logger.warning(f"处理接口 {iface['name']} 时出错: {str(e)}")
+                    self.logger.warning(f"处理接口信息时出错: {str(e)}")
                     continue
 
             interface_list = active_interfaces + inactive_interfaces

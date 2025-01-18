@@ -12,22 +12,44 @@ class PacketCapture:
         self.server_address = None
         self.stream_code = None
 
-    def start(self, interface):
+    def start(self, interface_display_name):
         """开始捕获数据包"""
         if self.is_capturing:
             return
 
-        # 清空之前捕获的地址
-        self.server_address = None
-        self.stream_code = None
-
-        self.is_capturing = True
+        # 从显示名称中提取实际的接口名称
         try:
-            # 创建新的捕获线程
-            self.capture_thread = threading.Thread(target=self._start_capture, args=(interface,))
+            # 提取方括号前的实际接口名称
+            interface = interface_display_name.split(" [")[0].strip()
+
+            # 获取Windows网络接口列表
+            from scapy.arch.windows import get_windows_if_list
+            interfaces = get_windows_if_list()
+
+            # 查找匹配的接口
+            interface_found = None
+            for iface in interfaces:
+                if iface.get('name') == interface or iface.get('description', '').startswith(interface):
+                    interface_found = iface.get('name')  # 使用实际的接口名称
+                    break
+
+            if not interface_found:
+                self.logger.error(f"找不到网络接口: {interface}")
+                return
+
+            # 清空之前捕获的地址
+            self.server_address = None
+            self.stream_code = None
+
+            self.is_capturing = True
+            # 创建新的捕获线程，使用找到的接口名称
+            self.capture_thread = threading.Thread(
+                target=self._start_capture, 
+                args=(interface_found,)
+            )
             self.capture_thread.daemon = True
             self.capture_thread.start()
-            self.logger.info(f"开始在接口 {interface} 上捕获数据包")
+            self.logger.info(f"开始在接口 {interface_found} 上捕获数据包")
         except Exception as e:
             self.logger.error(f"启动捕获时发生错误: {str(e)}")
             self.is_capturing = False
@@ -83,8 +105,7 @@ class PacketCapture:
                         server_match = re.search(r'(rtmp://[a-zA-Z0-9\-\.]+/[^/]+)', payload)
                         if server_match:
                             self.server_address = server_match.group(1).split('\x00')[0]  # 移除null字节
-                            self.logger.info(f"\n>>> 找到推流服务器地址 <<<")
-                            self.logger.info(f"地址: {self.server_address}")
+                            self.logger.info(f"\n>>> 找到推流服务器地址 <<<\n地址:{self.server_address}")
 
                     # 查找推流码
                     if 'FCPublish' in payload:
@@ -93,8 +114,7 @@ class PacketCapture:
                             self.stream_code = code_match.group(1)
                             if self.stream_code.endswith('C'):
                                 self.stream_code = self.stream_code[:-1]
-                            self.logger.info(f"\n>>> 找到推流码 <<<")
-                            self.logger.info(f"推流码: {self.stream_code}")
+                            self.logger.info(f"\n>>> 找到推流码 <<<\n推流码:{self.stream_code}")
 
                     # 当两个信息都获取到时，触发回调并停止捕获
                     if self.server_address and self.stream_code:

@@ -26,6 +26,9 @@ class StreamCaptureGUI:
         self.root = root
         self.root.title(f"抖音直播推流地址获取工具 {VERSION}")
         self.root.geometry("800x600")
+        
+        # 使窗口居中显示
+        self.center_window()
 
         # 设置窗口图标
         try:
@@ -138,7 +141,6 @@ class StreamCaptureGUI:
     def show_donation(self):
         """显示打赏对话框"""
         from gui.widgets import create_donation_dialog
-
         create_donation_dialog(self.root, self.logger, resource_path)
 
     def log_to_console(self, message):
@@ -211,3 +213,20 @@ class StreamCaptureGUI:
         # 如果发现关键数据包，自动切换到控制台标签
         if ">>> 发现" in message:
             self.log_notebook.select(1)  # 切换到数据包监控标签
+
+    def center_window(self):
+        """使窗口在屏幕中心显示"""
+        # 获取屏幕宽度和高度
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # 获取窗口宽度和高度
+        window_width = 800
+        window_height = 600
+        
+        # 计算窗口居中的x和y坐标
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        # 设置窗口位置
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
