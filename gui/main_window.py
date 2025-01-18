@@ -38,13 +38,34 @@ class StreamCaptureGUI:
         except tk.TclError:
             print("无法加载图标文件")
 
-        # 显示免责声明
-        # self.show_disclaimer()
+        # 初始化基础组件
+        self.logger = Logger()
 
         # 创建主框架
         self.main_frame = ttk.Frame(self.root, padding="10")
         self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
+        # 基本UI设置
+        self.setup_basic_ui()
+
+        # 延迟执行可能导致闪现的初始化操作
+        self.root.after(100, self.delayed_init)
+
+    def delayed_init(self):
+        """延迟执行的初始化操作"""
+        # 初始化其他组件
+        self.network = NetworkInterface(self.logger)
+        self.npcap = NpcapManager(self.logger)
+
+        # 检查Npcap
+        if not self.check_npcap():
+            self.check_and_install_npcap()
+            sys.exit(1)
+
+        # 检查更新
+        self.root.after(1000, self.async_check_updates)
+
+    def setup_basic_ui(self):
         # 设置网格权重
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
@@ -54,21 +75,8 @@ class StreamCaptureGUI:
         self.server_address = tk.StringVar()
         self.stream_code = tk.StringVar()
 
-        # 初始化基础组件
-        self.logger = Logger()
-        self.network = NetworkInterface(self.logger)
-        self.npcap = NpcapManager(self.logger)
-
         # 创建界面组件
         self.create_widgets()
-
-        # 检查Npcap
-        if not self.check_npcap():
-            self.check_and_install_npcap()
-            sys.exit(1)
-
-        # 在窗口加载完成后检查更新
-        self.root.after(1000, self.async_check_updates)
 
     def create_widgets(self):
         # 创建菜单栏

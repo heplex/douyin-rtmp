@@ -9,6 +9,11 @@ class NetworkInterface:
         @param logger: Logger实例
         """
         self.logger = logger
+        
+        # 创建通用的 startupinfo 对象
+        self.startupinfo = subprocess.STARTUPINFO()
+        self.startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        self.startupinfo.wShowWindow = subprocess.SW_HIDE
 
     def _get_interface_status(self):
         """获取网络接口状态"""
@@ -19,8 +24,9 @@ class NetworkInterface:
             ConvertTo-Csv -NoTypeInformation
             """
             ps_output = subprocess.check_output(
-                ["powershell", "-Command", ps_command],
-                stderr=subprocess.PIPE
+                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_command],
+                stderr=subprocess.PIPE,
+                startupinfo=self.startupinfo
             ).decode('utf-8', errors='ignore')
             
             # 获取 ipconfig 输出用于验证
@@ -129,7 +135,7 @@ class NetworkInterface:
             ConvertTo-Csv -NoTypeInformation
             """
             ps_output = subprocess.check_output(
-                ["powershell", "-Command", ps_command],
+                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_command],
                 stderr=subprocess.PIPE
             ).decode('utf-8', errors='ignore')
             
