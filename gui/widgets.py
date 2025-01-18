@@ -213,22 +213,65 @@ def create_donation_dialog(parent, logger, resource_path):
     """创建打赏对话框"""
     donation_window = tk.Toplevel(parent)
     donation_window.title("感谢支持")
-    donation_window.geometry("500x400")
+    donation_window.geometry("550x600")
     donation_window.resizable(False, False)
+    donation_window.transient(parent)  # 设置为主窗口的子窗口
+    
+    # 创建主框架并添加内边距
+    main_frame = ttk.Frame(donation_window, padding="20")
+    main_frame.pack(fill=tk.BOTH, expand=True)
+    
+    # 添加标题
+    title_label = ttk.Label(
+        main_frame, 
+        text="请作者喝杯咖啡", 
+        font=("微软雅黑", 16, "bold")
+    )
+    title_label.pack(pady=(0, 20))
+
     try:
         # 使用 resource_path 加载图片
         coffee_icon = tk.PhotoImage(file=resource_path("assets/donate.png"))
-        img_label = ttk.Label(donation_window, image=coffee_icon)
+        img_label = ttk.Label(main_frame, image=coffee_icon)
         img_label.image = coffee_icon  # 保持引用防止被垃圾回收
-        img_label.pack(pady=10)
+        img_label.pack(pady=(0, 20))
     except Exception as e:
         logger.error(f"加载打赏二维码失败: {str(e)}")
-        error_label = ttk.Label(donation_window, text="二维码加载失败")
-        error_label.pack(pady=10)
+        error_label = ttk.Label(main_frame, text="二维码加载失败")
+        error_label.pack(pady=(0, 20))
 
-    thank_text = "无论多少都是心意，一分也是对我莫大的鼓励！谢谢您的支持！\n ps:直播有收入了随便来一点喜庆一下就好啦，学生党或者直播没收益就不用啦！当然，大佬请随意~ 预祝各位老师们大红大紫！"
-    text_label = ttk.Label(donation_window, text=thank_text, wraplength=450)
-    text_label.pack(pady=10)
+    # 添加感谢文本
+    thank_text = (
+        "感谢您的支持！\n\n"
+        "无论多少都是心意，一分也是对我莫大的鼓励！\n"
+        "学生党或者直播没收益就不用啦！当然，大佬请随意~\n"
+        "预祝各位老师们大红大紫！"
+    )
+    text_label = ttk.Label(
+        main_frame, 
+        text=thank_text, 
+        wraplength=400,
+        justify="center",
+        font=("微软雅黑", 10)
+    )
+    text_label.pack(pady=(0, 20))
+    
+    # 添加关闭按钮
+    close_btn = ttk.Button(
+        main_frame, 
+        text="关闭", 
+        command=donation_window.destroy,
+        width=15
+    )
+    close_btn.pack(pady=(0, 10))
+    
+    # 居中显示窗口
+    donation_window.update_idletasks()
+    width = donation_window.winfo_width()
+    height = donation_window.winfo_height()
+    x = (donation_window.winfo_screenwidth() // 2) - (width // 2)
+    y = (donation_window.winfo_screenheight() // 2) - (height // 2)
+    donation_window.geometry(f"{width}x{height}+{x}+{y}")
 
 def create_about_dialog(root, version):
     from utils.config import GITHUB_CONFIG

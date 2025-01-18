@@ -20,6 +20,7 @@ from gui.obs import OBSPanel
 from gui.control import ControlPanel
 from utils.resource import resource_path
 from utils.config import get_config, set_config
+from gui.contribute import ContributeDialog
 
 
 class StreamCaptureGUI:
@@ -99,6 +100,9 @@ class StreamCaptureGUI:
         help_menu.add_command(label="检查软件更新", command=self.check_updates_manually)
         help_menu.add_separator()
         help_menu.add_command(label=f"关于 ({VERSION})", command=self.show_about)
+
+        # 贡献榜菜单
+        menubar.add_command(label="贡献榜", command=self.show_contribute)
 
         # 主布局使用网格
         self.main_frame.columnconfigure(1, weight=1)
@@ -287,3 +291,7 @@ class StreamCaptureGUI:
         thread = threading.Thread(target=check_update_with_feedback)
         thread.daemon = True
         thread.start()
+
+    def show_contribute(self):
+        """显示贡献榜对话框"""
+        ContributeDialog(self.root)
