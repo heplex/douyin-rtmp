@@ -37,7 +37,9 @@ class ControlPanel:
         self.interface_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
 
         # 刷新按钮
-        self.refresh_btn = ttk.Button(frame, text="刷新", command=self.refresh_interfaces, width=8)
+        self.refresh_btn = ttk.Button(
+            frame, text="刷新", command=self.refresh_interfaces, width=8
+        )
         self.refresh_btn.grid(row=0, column=2, padx=5)
 
         # 状态和控制按钮（第二行）
@@ -49,16 +51,16 @@ class ControlPanel:
         ttk.Label(frame, textvariable=self.status_text).grid(
             row=1, column=1, sticky=tk.W, padx=60
         )
-        
+
         # 添加监听所有端口的复选框
         self.listening_all = tk.BooleanVar(value=True)  # 默认为True
         self.load_listening_config()  # 加载配置
         self.listen_all_check = ttk.Checkbutton(
-            frame, 
+            frame,
             text="监听所有接口",
             variable=self.listening_all,
             command=self.on_listening_changed,
-            width=15  # 增加宽度确保文字完全显示
+            width=15,  # 增加宽度确保文字完全显示
         )
         self.listen_all_check.grid(row=1, column=1, sticky=tk.E, padx=(200, 5))
 
@@ -137,12 +139,6 @@ class ControlPanel:
     def toggle_capture(self):
         """切换捕获状态"""
         if not self.is_capturing:
-            # 获取选中的接口名称
-            selected_interface = self.selected_interface.get()
-            if not selected_interface:
-                messagebox.showerror("错误", "请先选择网络接口")
-                return
-
             # 开始捕获
             self.is_capturing = True
             self.capture_btn.configure(text="停止捕获")
@@ -152,8 +148,22 @@ class ControlPanel:
             # 清空原有推流地址和推流码
             self.update_stream_url("", "")
 
-            # 启动捕获线程，传递完整的接口显示名称
-            self.capture.start(selected_interface)
+            if self.listening_all.get():
+                # 获取所有接口
+                result = self.network_interface.load_interfaces()
+                interfaces = [
+                    iface.split(" [")[0].strip() for iface in result["interfaces"]
+                ]
+                # 启动多接口捕获
+                self.capture.start_multi(interfaces)
+            else:
+                # 获取选中的接口名称
+                selected_interface = self.selected_interface.get()
+                if not selected_interface:
+                    messagebox.showerror("错误", "请先选择网络接口")
+                    return
+                # 启动单接口捕获
+                self.capture.start(selected_interface)
         else:
             # 停止捕获
             self.is_capturing = False
@@ -187,6 +197,13 @@ class ControlPanel:
         """更新推流地址和推流码"""
         self.gui.server_address.set(server_address)
         self.gui.stream_code.set(stream_code)
+
+        # 如果获取到了地址和推流码，更新界面状态
+        if server_address and stream_code:
+            self.is_capturing = False
+            self.capture_btn.configure(text="开始捕获")
+            self.on_listening_changed()  # 重置接口选择状态
+            self.status_text.set("已停止")
 
     def on_capture_click(self):
         """处理捕获按钮点击事件"""
@@ -222,7 +239,7 @@ class ControlPanel:
         else:
             # 如果配置不存在，设置默认值为True并保存
             self.save_listening_config()
-            
+
         # 初始化时设置接口选择的状态
         self.on_listening_changed()
 
@@ -235,7 +252,7 @@ class ControlPanel:
     def on_listening_changed(self):
         """监听设置改变时的回调"""
         self.save_listening_config()
-        
+
         # 根据监听所有接口的状态设置接口选择和刷新按钮的状态
         if self.listening_all.get():
             self.interface_combo.configure(state="disabled")
@@ -250,9 +267,9 @@ class ControlPanel:
             self.capture_thread.stop()
             self.capture_thread.join()
             self.capture_thread = None
-            
+
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
-        
+
         # 根据监听所有接口的状态重新设置接口选择框的状态
         self.on_listening_changed()

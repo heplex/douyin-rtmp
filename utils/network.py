@@ -155,7 +155,7 @@ class NetworkInterface:
                         
                         # 在 scapy 接口列表中查找匹配的接口
                         scapy_iface = None
-                        for iface_data in scapy_interfaces.items():
+                        for iface_name, iface_data in scapy_interfaces.items():
                             if (iface_data.get('description', '').strip() == desc.strip() or
                                 iface_data.get('win_index') == interface_index):
                                 scapy_iface = iface_data
