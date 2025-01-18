@@ -524,7 +524,7 @@ class StreamCaptureGUI:
 
                     # 打印详细信息到控制台
                     self.log_to_console(
-                        f"接口: {name}\n"
+                        f"\n   接口: {name}\n"
                         f"   描述: {desc}\n"
                         f"   状态: {status}\n"
                         f"   IP地址: {', '.join(ip_addresses) if ip_addresses else '无'}\n"

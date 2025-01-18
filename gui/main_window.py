@@ -19,6 +19,7 @@ from gui.ads import AdPanel
 from gui.obs import OBSPanel
 from gui.control import ControlPanel
 from utils.resource import resource_path
+from utils.config import get_config, set_config
 
 
 class StreamCaptureGUI:
@@ -26,7 +27,7 @@ class StreamCaptureGUI:
         self.root = root
         self.root.title(f"抖音直播推流地址获取工具 {VERSION}")
         self.root.geometry("800x600")
-        
+
         # 使窗口居中显示
         self.center_window()
 
@@ -57,7 +58,7 @@ class StreamCaptureGUI:
         self.logger = Logger()
         self.network = NetworkInterface(self.logger)
         self.npcap = NpcapManager(self.logger)
-        
+
         # 创建界面组件
         self.create_widgets()
 
@@ -87,6 +88,7 @@ class StreamCaptureGUI:
             label="GitHub 仓库",
             command=lambda: webbrowser.open(GITHUB_CONFIG["RELEASE_URL"]),
         )
+        help_menu.add_command(label="检查软件更新", command=self.check_updates_manually)
         help_menu.add_separator()
         help_menu.add_command(label=f"关于 ({VERSION})", command=self.show_about)
 
@@ -123,6 +125,22 @@ class StreamCaptureGUI:
         buttons_frame = ttk.Frame(status_frame)
         buttons_frame.pack(side=tk.RIGHT)
 
+        # 自动检查更新复选框
+        self.check_update_var = tk.BooleanVar(
+            value=(
+                get_config("check_update")
+                if get_config("check_update") is not None
+                else True
+            )
+        )
+        check_update_cb = ttk.Checkbutton(
+            buttons_frame,
+            text="启动时检查更新",
+            variable=self.check_update_var,
+            command=self.on_check_update_changed,
+        )
+        check_update_cb.pack(side=tk.LEFT, padx=5)
+
         # 打赏按钮
         ttk.Button(
             buttons_frame, text="请作者喝杯咖啡", command=self.show_donation, width=14
@@ -141,6 +159,7 @@ class StreamCaptureGUI:
     def show_donation(self):
         """显示打赏对话框"""
         from gui.widgets import create_donation_dialog
+
         create_donation_dialog(self.root, self.logger, resource_path)
 
     def log_to_console(self, message):
@@ -165,8 +184,12 @@ class StreamCaptureGUI:
 
     def async_check_updates(self):
         """异步检查更新"""
+        # 检查是否启用自动更新
+        if not get_config("check_update"):
+            return
+
         thread = threading.Thread(target=check_for_updates)
-        thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
+        thread.daemon = True
         thread.start()
 
     def install_npcap(self):
@@ -219,14 +242,40 @@ class StreamCaptureGUI:
         # 获取屏幕宽度和高度
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        
+
         # 获取窗口宽度和高度
         window_width = 800
         window_height = 600
-        
+
         # 计算窗口居中的x和y坐标
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
-        
+
         # 设置窗口位置
         self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+    def on_check_update_changed(self):
+        """处理自动检查更新复选框状态变化"""
+        set_config("check_update", self.check_update_var.get())
+
+    def check_updates_manually(self):
+        """手动检查更新"""
+        self.logger.info("正在检查更新...")
+
+        def check_update_with_feedback():
+            has_update, clicked_yes = check_for_updates()
+            if not has_update:
+                self.root.after(
+                    0,
+                    lambda: messagebox.showinfo(
+                        "检查更新", "您当前使用的已经是最新版本！"
+                    ),
+                )
+                self.logger.info("当前已是最新版本")
+
+            if not clicked_yes:
+                self.logger.info("发现了最新版本，但您取消了更新")
+
+        thread = threading.Thread(target=check_update_with_feedback)
+        thread.daemon = True
+        thread.start()

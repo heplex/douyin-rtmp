@@ -1,5 +1,5 @@
 # 版本信息
-VERSION = "v1.0.4"
+VERSION = "v1.0.5"
 
 # GitHub 相关配置
 GITHUB_CONFIG = {

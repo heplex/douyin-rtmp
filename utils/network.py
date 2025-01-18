@@ -191,7 +191,7 @@ class NetworkInterface:
                             inactive_interfaces.append(display_name)
 
                         self.logger.info(
-                            f"接口: {capture_name}\n"
+                            f"\n   接口: {capture_name}\n"
                             f"   描述: {desc}\n"
                             f"   类型: {'VPN/虚拟' if is_vpn else '物理'}\n"
                             f"   状态: {'已连接' if is_active else '未连接'}\n"
