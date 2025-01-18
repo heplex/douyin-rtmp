@@ -145,7 +145,7 @@ class ControlPanel:
             if self.check_douyin_live_running():
                 response = messagebox.askyesno(
                     "警告",
-                    "检测到抖音直播伴侣正在运行，请确认处于未开播状态，如果已开播将捕获不到。\n\n是否继续捕获？"
+                    "检测到抖音直播伴侣正在运行，请确认处于未开播状态，开始捕获后再在抖音直播伴侣中点击开始直播。\n\n是否继续捕获？"
                 )
                 if not response:
                     return
