@@ -268,7 +268,79 @@ class OBSPanel:
             except Exception as e:
                 self.logger.info(f"从注册表获取OBS路径失败: {str(e)}")
 
-            # 如果从注册表没有找到，尝试常用路径
+            # 如果从注册表没有找到，尝试Steam安装路径
+            if not obs_found:
+                try:
+                    import winreg
+                    # 检查两种可能的Steam注册表路径
+                    steam_paths = []
+                    
+                    # 检查管理员安装路径 (HKEY_LOCAL_MACHINE)
+                    try:
+                        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam") as key:
+                            steam_paths.append(winreg.QueryValueEx(key, "InstallPath")[0])
+                    except WindowsError:
+                        pass
+                    
+                    # 检查当前用户安装路径 (HKEY_CURRENT_USER)
+                    try:
+                        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Valve\Steam") as key:
+                            steam_paths.append(winreg.QueryValueEx(key, "SteamPath")[0])
+                    except WindowsError:
+                        pass
+                    
+                    # 移除重复路径
+                    steam_paths = list(set(steam_paths))
+                    
+                    # 对每个Steam安装路径进行检查
+                    for steam_path in steam_paths:
+                        # Steam库文件夹可能的位置
+                        library_folders = [steam_path]
+                        
+                        # 检查新版本的库文件夹配置文件
+                        new_library_file = os.path.join(steam_path, "config", "libraryfolders.vdf")
+                        # 检查旧版本的库文件夹配置文件
+                        old_library_file = os.path.join(steam_path, "steamapps", "libraryfolders.vdf")
+                        
+                        for library_file in [new_library_file, old_library_file]:
+                            if os.path.exists(library_file):
+                                with open(library_file, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                                    # 使用更完善的正则表达式匹配路径
+                                    import re
+                                    # 匹配新版Steam库文件格式
+                                    paths = re.findall(r'"path"\s+"([^"]+)"', content)
+                                    if not paths:
+                                        # 匹配旧版Steam库文件格式
+                                        paths = re.findall(r'"[0-9]+"\s+"([^"]+)"', content)
+                                    library_folders.extend(paths)
+                        
+                        # 移除重复路径并规范化路径格式
+                        library_folders = list(set([os.path.normpath(path.replace("\\\\", "\\")) for path in library_folders]))
+                        
+                        # 在所有Steam库中查找OBS
+                        for library in library_folders:
+                            # 可能的文件夹名称
+                            possible_paths = [
+                                os.path.join(library, "steamapps", "common", "OBS Studio", "bin", "64bit", "obs64.exe")
+                            ]
+                            
+                            for obs_path in possible_paths:
+                                if os.path.exists(obs_path):
+                                    self.obs_path.set(obs_path)
+                                    self.obs_status.set("已配置")
+                                    self.save_obs_path(obs_path)
+                                    self.logger.info(f"从Steam安装路径找到OBS: {obs_path}")
+                                    obs_found = True
+                                    break
+                            
+                            if obs_found:
+                                break
+                            
+                except Exception as e:
+                    self.logger.info(f"从Steam路径查找OBS失败: {str(e)}")
+
+            # 如果从Steam没有找到，继续尝试常用路径
             if not obs_found:
                 common_paths = [
                     "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
