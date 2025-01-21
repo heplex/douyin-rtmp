@@ -5,30 +5,35 @@ import json
 from utils.config import load_obs_config
 from utils.content_config import OBS_HELP_TEXT
 
+
 class OBSPanel:
     def __init__(self, parent, main_frame, logger):
         self.parent = parent
         self.main_frame = main_frame
         self.logger = logger
-        
+
         # 状态变量
         self.obs_path = tk.StringVar()
         self.obs_status = tk.StringVar(value="未配置")
         self.stream_config_status = tk.StringVar(value="未配置")
-        
+
         # 加载OBS配置
         obs_path, obs_configured, stream_configured = load_obs_config()
         self.obs_path.set(obs_path)
         self.obs_status.set("已配置" if obs_configured else "未配置")
         self.stream_config_status.set("已配置" if stream_configured else "未配置")
-        
+
         # 初始化OBS工具类
         from utils.obs import OBSUtils
+
         self.obs_utils = OBSUtils()
         self.obs_utils.set_logger(self.logger)
-        
+
+        # 添加自动初始化
+        self.auto_initialize()
+
         self.create_widgets()
-        
+
     def create_widgets(self):
         # 添加OBS管理面板
         obs_frame = ttk.LabelFrame(self.main_frame, text="OBS管理", padding="5")
@@ -40,34 +45,53 @@ class OBSPanel:
         status_frame.grid(row=0, column=0, columnspan=2, pady=5)
 
         ttk.Label(status_frame, text="OBS状态:", width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Label(status_frame, textvariable=self.obs_status, width=6).pack(side=tk.LEFT, padx=1)
+        ttk.Label(status_frame, textvariable=self.obs_status, width=6).pack(
+            side=tk.LEFT, padx=1
+        )
         ttk.Label(status_frame, text="推流配置:", width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Label(status_frame, textvariable=self.stream_config_status, width=6).pack(side=tk.LEFT, padx=1)
+        ttk.Label(status_frame, textvariable=self.stream_config_status, width=6).pack(
+            side=tk.LEFT, padx=1
+        )
 
         # OBS按钮组1
         obs_btn_frame1 = ttk.Frame(obs_frame)
         obs_btn_frame1.grid(row=1, column=0, columnspan=2, pady=(5, 2))
-        ttk.Button(obs_btn_frame1, text="OBS路径配置", command=self.configure_obs_path, width=12).pack(side=tk.LEFT, padx=5)
-        ttk.Button(obs_btn_frame1, text="推流配置", command=self.configure_stream, width=12).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame1,
+            text="OBS路径配置",
+            command=self.configure_obs_path,
+            width=12,
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame1, text="推流配置", command=self.configure_stream, width=12
+        ).pack(side=tk.LEFT, padx=5)
 
         # OBS按钮组2
         obs_btn_frame2 = ttk.Frame(obs_frame)
         obs_btn_frame2.grid(row=2, column=0, columnspan=2, pady=(5, 2))
-        ttk.Button(obs_btn_frame2, text="同步推流码", command=self.sync_stream_config, width=12).pack(side=tk.LEFT, padx=5)
-        ttk.Button(obs_btn_frame2, text="启动OBS", command=self.launch_obs, width=12).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame2, text="同步推流码", command=self.sync_stream_config, width=12
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame2, text="启动OBS", command=self.launch_obs, width=12
+        ).pack(side=tk.LEFT, padx=5)
 
         # OBS按钮组3
         obs_btn_frame3 = ttk.Frame(obs_frame)
         obs_btn_frame3.grid(row=3, column=0, columnspan=2, pady=(5, 2))
-        ttk.Button(obs_btn_frame3, text="插件管理", command=self.open_plugin_manager, width=12).pack(side=tk.LEFT, padx=5)
-        ttk.Button(obs_btn_frame3, text="使用说明", command=self.show_obs_help, width=12).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame3, text="插件管理", command=self.open_plugin_manager, width=12
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            obs_btn_frame3, text="使用说明", command=self.show_obs_help, width=12
+        ).pack(side=tk.LEFT, padx=5)
 
     # 这里添加所有OBS相关的方法
     def configure_obs_path(self):
         """配置OBS路径"""
         file_path = filedialog.askopenfilename(
             title="选择obs64.exe",
-            filetypes=[("EXE files", "*.exe")],
+            filetypes=[("EXE files", "obs64.exe")],
             initialfile="obs64.exe",
         )
 
@@ -127,32 +151,34 @@ class OBSPanel:
         """同步推流配置到OBS"""
         server_url = self.parent.server_address.get()
         stream_key = self.parent.stream_code.get()
-        return self.obs_utils.sync_stream_config(server_url, stream_key, from_launch_button)
+        return self.obs_utils.sync_stream_config(
+            server_url, stream_key, from_launch_button
+        )
 
     def open_plugin_manager(self):
         """打开插件管理窗口"""
         from gui.plugin_manager import PluginManagerFrame
-        
+
         # 创建新窗口
         plugin_window = tk.Toplevel(self.parent.root)
         plugin_window.title("插件管理")
         plugin_window.geometry("400x300")
-        
+
         # 使窗口模态
         plugin_window.transient(self.parent.root)
         plugin_window.grab_set()
-        
+
         # 添加插件管理界面
         plugin_frame = PluginManagerFrame(plugin_window)
         plugin_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         # 使窗口在屏幕中居中
         plugin_window.update_idletasks()
         width = plugin_window.winfo_width()
         height = plugin_window.winfo_height()
         x = (plugin_window.winfo_screenwidth() // 2) - (width // 2)
         y = (plugin_window.winfo_screenheight() // 2) - (height // 2)
-        plugin_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        plugin_window.geometry("{}x{}+{}+{}".format(width, height, x, y))
 
     def configure_stream(self):
         """配置推流设置"""
@@ -195,6 +221,134 @@ class OBSPanel:
                 config = json.load(f)
 
         config["stream_config_path"] = file_path
+
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+    def auto_initialize(self):
+        """自动初始化OBS配置"""
+        if self.obs_status.get() == "未配置":
+            obs_found = False
+            # 首先尝试从注册表获取路径
+            try:
+                import winreg
+                registry_paths = [
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\OBS Studio"),
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\OBS Studio"),
+                    (winreg.HKEY_CURRENT_USER, r"SOFTWARE\OBS Studio"),
+                    (winreg.HKEY_CURRENT_USER, r"SOFTWARE\WOW6432Node\OBS Studio"),
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OBS Studio"),
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\OBS.Studio"),
+                ]
+
+                for hkey, reg_path in registry_paths:
+                    try:
+                        with winreg.OpenKey(hkey, reg_path) as key:
+                            install_path = winreg.QueryValue(key, None)
+                            if not install_path:
+                                for value_name in ["InstallLocation", "Path", "InstallPath"]:
+                                    try:
+                                        install_path = winreg.QueryValueEx(key, value_name)[0]
+                                        break
+                                    except WindowsError:
+                                        continue
+
+                            if install_path:
+                                obs_exe_path = os.path.join(install_path, "bin", "64bit", "obs64.exe")
+                                if os.path.exists(obs_exe_path):
+                                    self.obs_path.set(obs_exe_path)
+                                    self.obs_status.set("已配置")
+                                    self.save_obs_path(obs_exe_path)
+                                    self.logger.info(f"从注册表找到OBS路径: {obs_exe_path}，已进行自动配置")
+                                    obs_found = True
+                                    break
+                    except WindowsError:
+                        continue
+
+            except Exception as e:
+                self.logger.info(f"从注册表获取OBS路径失败: {str(e)}")
+
+            # 如果从注册表没有找到，尝试常用路径
+            if not obs_found:
+                common_paths = [
+                    "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+                    "D:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+                    "E:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+                    "F:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+                ]
+                for path in common_paths:
+                    if os.path.exists(path):
+                        self.obs_path.set(path)
+                        self.obs_status.set("已配置")
+                        self.save_obs_path(path)
+                        self.logger.info(f"自动找到OBS路径: {path}")
+                        obs_found = True
+                        break
+
+                if not obs_found:
+                    self.logger.info("未能自动找到OBS安装路径，请点击「OBS路径配置」按钮手动选择obs64.exe的位置")
+
+        # 只有在OBS路径已配置的情况下才进行推流配置
+        if (
+            self.obs_status.get() == "已配置"
+            and self.stream_config_status.get() == "未配置"
+        ):
+            profiles_path = os.path.expanduser(
+                "~\\AppData\\Roaming\\obs-studio\\basic\\profiles"
+            )
+            if os.path.exists(profiles_path):
+                # 首先检查"未命名"文件夹
+                unnamed_path = os.path.join(profiles_path, "未命名")
+                service_json_path = os.path.join(unnamed_path, "service.json")
+
+                if os.path.exists(service_json_path):
+                    self.save_stream_config_path(service_json_path)
+                    self.stream_config_status.set("已配置")
+                    self.logger.info(f"找到默认推流配置: {service_json_path}，已进行自动配置")
+                    return
+
+                # 遍历所有文件夹查找service.json
+                for folder in os.listdir(profiles_path):
+                    folder_path = os.path.join(profiles_path, folder)
+                    if os.path.isdir(folder_path):
+                        service_json_path = os.path.join(folder_path, "service.json")
+                        if os.path.exists(service_json_path):
+                            self.save_stream_config_path(service_json_path)
+                            self.stream_config_status.set("已配置")
+                            self.logger.info(f"找到推流配置: {service_json_path}")
+                            return
+
+                # 如果没有找到任何配置，在"未命名"文件夹下创建新的配置
+                os.makedirs(unnamed_path, exist_ok=True)
+                service_json_path = os.path.join(unnamed_path, "service.json")
+                default_config = {
+                    "settings": {
+                        "bwtest": False,
+                        "key": "",
+                        "server": "",
+                        "service": "rtmp",
+                    },
+                    "type": "rtmp_custom",
+                }
+                with open(service_json_path, "w", encoding="utf-8") as f:
+                    json.dump(default_config, f, indent=4)
+
+                self.save_stream_config_path(service_json_path)
+                self.stream_config_status.set("已配置")
+                self.logger.info(f"创建新的推流配置: {service_json_path}")
+
+    def save_obs_path(self, file_path):
+        """保存OBS路径到配置文件"""
+        config_dir = os.path.expanduser("~/.douyin-rtmp")
+        os.makedirs(config_dir, exist_ok=True)
+        config_file = os.path.join(config_dir, "config.json")
+
+        config = {}
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+
+        config["obs_path"] = file_path
 
         with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
