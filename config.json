@@ -9,6 +9,14 @@
             "installName": "obs-multi-rtmp"
         },
         {
+            "pluginName": "obs-composite-blur",
+            "version": "1.1.0",
+            "description": "局部马赛克，可以对部分进行模糊处理",
+            "releaseUrl": "https://github.com/FiniteSingularity/obs-composite-blur/releases",
+            "downloadUrl": "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/resources/obs-composite-blur-1.1.0-windows.zip",
+            "installName": "obs-composite-blur"
+        },
+        {
             "pluginName": "distroav(OBS NDI)",
             "version": "6.0.0",
             "description": "可以将OBS的输出流传输到其他计算机上",
