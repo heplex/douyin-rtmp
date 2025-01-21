@@ -202,8 +202,13 @@ class StreamCaptureGUI:
 
     def async_check_updates(self):
         """异步检查更新"""
-        # 检查是否启用自动更新
-        if not get_config("check_update"):
+        # 检查是否启用自动更新，默认为 True
+        if get_config("check_update") is not None:
+            check_update = get_config("check_update")
+        else:
+            check_update = True
+            
+        if not check_update:
             return
 
         thread = threading.Thread(target=check_for_updates)
