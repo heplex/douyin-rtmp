@@ -104,7 +104,7 @@ class ContributeDialog:
         """加载贡献数据"""
         try:
             response = requests.get(
-                "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/contribute.json"
+                "https://douyin-rtmp.config.clunk.cn/contribute.json"
             )
             data = response.json()
             self.create_tabs(data)

@@ -310,7 +310,7 @@ class StreamCaptureGUI:
     def get_helper_center_url(self):
         """获取帮助中心URL"""
         try:
-            response = requests.get("https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/helper.json")
+            response = requests.get("https://douyin-rtmp.config.clunk.cn/helper.json")
             data = response.json()
             return data.get("helperCenter")
         except Exception as e:

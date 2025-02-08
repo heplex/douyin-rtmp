@@ -141,7 +141,6 @@ class ControlPanel:
         """切换捕获状态"""
         if not self.is_capturing:
             # 开始捕获
-            # 检查直播伴侣是否运行
             if self.check_douyin_live_running():
                 response = messagebox.askyesno(
                     "警告",
@@ -159,21 +158,24 @@ class ControlPanel:
             self.update_stream_url("", "")
 
             if self.listening_all.get():
-                # 获取所有接口
-                result = self.network_interface.load_interfaces()
-                interfaces = [
-                    iface.split(" [")[0].strip() for iface in result["interfaces"]
-                ]
+                # 获取所有接口的实际名称
+                selected_interfaces = []
+                for iface_display in self.interface_combo['values']:
+                    # 从显示名称中提取实际的接口名称
+                    actual_name = iface_display.split(" [")[0].strip()
+                    selected_interfaces.append(actual_name)
                 # 启动多接口捕获
-                self.capture.start_multi(interfaces)
+                self.capture.start_multi(selected_interfaces)
             else:
-                # 获取选中的接口名称
-                selected_interface = self.selected_interface.get()
-                if not selected_interface:
+                # 获取选中接口的实际名称
+                selected_display = self.selected_interface.get()
+                if not selected_display:
                     messagebox.showerror("错误", "请先选择网络接口")
                     return
+                # 从显示名称中提取实际的接口名称
+                actual_name = selected_display.split(" [")[0].strip()
                 # 启动单接口捕获
-                self.capture.start(selected_interface)
+                self.capture.start(actual_name)
         else:
             # 停止捕获
             self.is_capturing = False

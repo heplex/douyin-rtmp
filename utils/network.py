@@ -121,100 +121,59 @@ class NetworkInterface:
     def load_interfaces(self):
         """加载网络接口列表"""
         try:
-            # 首先获取 scapy 的接口列表作为参考
-            scapy_interfaces = {
-                iface.get('name'): iface 
-                for iface in get_windows_if_list()
-            }
-            
-            # 使用 PowerShell 获取网络适配器信息
-            ps_command = """
-            Get-NetAdapter | 
-            Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress, MediaConnectionState, InterfaceIndex |
-            Where-Object { $_.InterfaceDescription -notmatch '(Loopback|VMware|VirtualBox|Hyper-V|Bluetooth)' } |
-            ConvertTo-Csv -NoTypeInformation
-            """
-            ps_output = subprocess.check_output(
-                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_command],
-                stderr=subprocess.PIPE
-            ).decode('utf-8', errors='ignore')
+            # 获取 scapy 的接口列表
+            scapy_interfaces = get_windows_if_list()
             
             active_interfaces = []
             inactive_interfaces = []
             default_interface = None
 
-            # 解析 PowerShell 输出
-            for line in ps_output.split('\n')[1:]:  # 跳过标题行
-                if not line.strip():
+            for iface in scapy_interfaces:
+                # 跳过没有IP地址的接口
+                if not iface.get('ips'):
+                    continue
+                    
+                # 获取接口基本信息
+                name = iface.get('name', '')
+                desc = iface.get('description', '')
+                
+                # 跳过虚拟接口
+                if any(keyword in desc.lower() 
+                      for keyword in ['loopback', 'vmware', 'virtualbox', 'hyper-v', 'bluetooth']):
                     continue
                 
-                try:
-                    parts = line.strip().strip('"').split('","')
-                    if len(parts) >= 7:  # 确保有足够的字段
-                        name = parts[0]
-                        desc = parts[1]
-                        status = parts[2]
-                        link_speed = parts[3]
-                        mac_address = parts[4]
-                        media_state = parts[5]
-                        interface_index = parts[6]
-                        
-                        # 在 scapy 接口列表中查找匹配的接口
-                        scapy_iface = None
-                        for iface_name, iface_data in scapy_interfaces.items():
-                            if (iface_data.get('description', '').strip() == desc.strip() or
-                                iface_data.get('win_index') == interface_index):
-                                scapy_iface = iface_data
-                                break
-                        
-                        if not scapy_iface:
-                            self.logger.warning(f"找不到匹配的 Scapy 接口: {name} ({desc})")
-                            continue
-                            
-                        # 使用 scapy 接口名称
-                        capture_name = scapy_iface['name']
-                        
-                        # 检查是否为VPN适配器
-                        is_vpn = any(vpn_keyword in desc.lower() 
-                                   for vpn_keyword in ['vpn', 'virtual', '虚拟'])
-                        
-                        # 判断接口是否活动
-                        is_active = (status == "Up" and link_speed != "0 bps") or (
-                            is_vpn and status == "Up" and media_state == "Connected"
-                        )
-                        
-                        display_desc = desc[:47] + '...' if len(desc) > 50 else desc
-                        # 在显示名称中包含实际的捕获名称
-                        display_name = f"{capture_name} [{'已连接' if is_active else '未连接'}] - {display_desc}"
+                # 获取有效的IPv4地址
+                ipv4_addr = next((ip for ip in iface.get('ips', []) if self._is_valid_ip(ip)), None)
+                is_active = bool(ipv4_addr)
+                is_vpn = any(vpn_keyword in desc.lower() for vpn_keyword in ['vpn', 'virtual', '虚拟'])
+                
+                # 构建显示名称
+                display_desc = desc[:47] + '...' if len(desc) > 50 else desc
+                display_name = f"{name} [{'已连接' if is_active else '未连接'}] - {display_desc}"
 
-                        if is_active:
-                            active_interfaces.append(display_name)
-                            if not default_interface and not is_vpn and (
-                                "ethernet" in desc.lower() or "以太网" in desc
-                            ):
-                                default_interface = display_name
-                        else:
-                            inactive_interfaces.append(display_name)
+                # 处理接口状态
+                if is_active:
+                    active_interfaces.append(display_name)
+                    # 设置默认接口（优先选择以太网）
+                    if not default_interface and not is_vpn and (
+                        "ethernet" in desc.lower() or "以太网" in desc.lower()
+                    ):
+                        default_interface = display_name
+                else:
+                    inactive_interfaces.append(display_name)
 
-                        self.logger.info(
-                            f"\n   接口: {capture_name}\n"
-                            f"   描述: {desc}\n"
-                            f"   类型: {'VPN/虚拟' if is_vpn else '物理'}\n"
-                            f"   状态: {'已连接' if is_active else '未连接'}\n"
-                            f"   速度: {link_speed}\n"
-                            f"   MAC地址: {mac_address}\n"
-                            f"   接口索引: {interface_index}"
-                        )
-                except Exception as e:
-                    self.logger.warning(f"处理接口信息时出错: {str(e)}")
-                    continue
-
-            interface_list = active_interfaces + inactive_interfaces
-            self.logger.info(f"\n共找到 {len(interface_list)} 个网络接口")
-            self.logger.info(f"其中活动接口 {len(active_interfaces)} 个")
+                # 记录接口信息
+                self.logger.info(
+                    f"\n   接口: {name}\n"
+                    f"   描述: {desc}\n"
+                    f"   类型: {'VPN/虚拟' if is_vpn else '物理'}\n"
+                    f"   状态: {'已连接' if is_active else '未连接'}\n"
+                    f"   IP地址: {ipv4_addr or '无'}\n"
+                    f"   MAC地址: {iface.get('mac', '')}"
+                )
 
             return {
-                'interfaces': interface_list,
+                'interfaces': active_interfaces + inactive_interfaces,
                 'default': default_interface,
                 'active_count': len(active_interfaces)
             }

@@ -20,23 +20,19 @@ class PacketCapture:
         if self.is_capturing:
             return
 
-        # 从显示名称中提取实际的接口名称
         try:
-            # 提取方括号前的实际接口名称
+            # 从显示名称中提取实际的接口名称（格式：name [状态] - 描述）
             interface = interface_display_name.split(" [")[0].strip()
 
             # 获取Windows网络接口列表
             from scapy.arch.windows import get_windows_if_list
-
             interfaces = get_windows_if_list()
 
             # 查找匹配的接口
             interface_found = None
             for iface in interfaces:
-                if iface.get("name") == interface or iface.get(
-                    "description", ""
-                ).startswith(interface):
-                    interface_found = iface.get("name")  # 使用实际的接口名称
+                if iface.get("name") == interface:  # 直接匹配接口名称
+                    interface_found = iface.get("name")
                     break
 
             if not interface_found:
@@ -88,7 +84,6 @@ class PacketCapture:
 
         # 获取Windows网络接口列表
         from scapy.arch.windows import get_windows_if_list
-
         windows_interfaces = get_windows_if_list()
 
         for interface_display_name in interfaces:
@@ -99,9 +94,7 @@ class PacketCapture:
                 # 查找匹配的接口
                 interface_found = None
                 for iface in windows_interfaces:
-                    if iface.get("name") == interface or iface.get(
-                        "description", ""
-                    ).startswith(interface):
+                    if iface.get("name") == interface:  # 直接匹配接口名称
                         interface_found = iface.get("name")
                         break
 
