@@ -112,7 +112,7 @@ class AdPanel:
         def fetch_content():
             try:
                 response = requests.get(
-                    "https://gh-proxy.protoniot.com/heplex/douyin-rtmp/raw/config/ads",
+                    "https://douyin-rtmp.config.clunk.cn/ads",
                     timeout=5,
                 )
                 if response.status_code == 200:
