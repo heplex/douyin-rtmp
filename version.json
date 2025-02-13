@@ -1,5 +1,5 @@
 {
-  "tag_name": "v1.0.7",
-  "body": "1.修复部分机器点击捕获时会出现not found的问题\n2.调整更新检查接口",
-  "update_suggestions": "v1.0.6不可用，但v1.0.4可用的情况下推荐更新！"
+  "tag_name": "v1.0.8",
+  "body": "主要是bug修复",
+  "update_suggestions": "v1.0.5以下版本建议更新，以上版本正常用的情况下可不管"
 }
