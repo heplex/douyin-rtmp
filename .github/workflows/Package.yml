@@ -1,0 +1,52 @@
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  pyinstaller:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Time Zone
+        run: tzutil /s "China Standard Time"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Build with PyInstaller
+        shell: cmd
+        run: .\build.bat -y
+      - name: Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: douyin-rtmp
+          path: ${{ github.workspace }}/dist/douyin-rtmp.exe
+
+  release:
+    needs: [pyinstaller]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Download PyInstaller artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: douyin-rtmp
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            douyin-rtmp.exe
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          make_latest: false
