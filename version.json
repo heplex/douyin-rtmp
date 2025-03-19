@@ -1,5 +1,5 @@
 {
-  "tag_name": "v1.0.9",
+  "tag_name": "v1.0.10",
   "body": "增加日志模式获取推流码（不抓包的方式）",
   "update_suggestions": "随意更新，能用就行，不能用npcap、接口获取失败的可以更新使用",
   "download_url": "https://group.kumquat.ink"
